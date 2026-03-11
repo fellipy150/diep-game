@@ -9,8 +9,8 @@ export const canvas = document.getElementById("game");
 export const ctx = canvas.getContext("2d");
 
 // Resolução Lógica (Proporção de Telemóvel)
-export const GAME_WIDTH = 360;
-export const GAME_HEIGHT = 640;
+export const GAME_WIDTH = 720; 
+export const GAME_HEIGHT = 1280;
 
 canvas.width = GAME_WIDTH;
 canvas.height = GAME_HEIGHT;
@@ -41,42 +41,31 @@ export function gerenciarSpawns(dt) {
 }
 
 function spawnEnemy() {
-    // Margem de segurança para nascer fora do ecrã
     const margin = 100;
     let spawnX, spawnY;
-
-    // Sorteia um lado do ecrã: 0=Cima, 1=Baixo, 2=Esquerda, 3=Direita
     const edge = Math.floor(Math.random() * 4);
 
-    if (edge === 0) { // Cima
-        spawnX = camera.x + (Math.random() * GAME_WIDTH);
-        spawnY = camera.y - margin;
-    } else if (edge === 1) { // Baixo
-        spawnX = camera.x + (Math.random() * GAME_WIDTH);
-        spawnY = camera.y + GAME_HEIGHT + margin;
-    } else if (edge === 2) { // Esquerda
-        spawnX = camera.x - margin;
-        spawnY = camera.y + (Math.random() * GAME_HEIGHT);
-    } else { // Direita
-        spawnX = camera.x + GAME_WIDTH + margin;
-        spawnY = camera.y + (Math.random() * GAME_HEIGHT);
-    }
+    if (edge === 0) { spawnX = camera.x + (Math.random() * GAME_WIDTH); spawnY = camera.y - margin; }
+    else if (edge === 1) { spawnX = camera.x + (Math.random() * GAME_WIDTH); spawnY = camera.y + GAME_HEIGHT + margin; }
+    else if (edge === 2) { spawnX = camera.x - margin; spawnY = camera.y + (Math.random() * GAME_HEIGHT); }
+    else { spawnX = camera.x + GAME_WIDTH + margin; spawnY = camera.y + (Math.random() * GAME_HEIGHT); }
 
-    // Sorteia a Inteligência Artificial
-    const aiTypes = ['agressivo', 'perdido', 'sniper', 'estrategico', 'corpo_a_corpo', 'cura'];
+    // I.A. em Inglês
+    const aiTypes = ['aggressive', 'lost', 'sniper', 'strategic', 'melee', 'healer'];
     const randomAI = aiTypes[Math.floor(Math.random() * aiTypes.length)];
 
-    // Sorteia a Munição Especial (25% de chance base + 2% extra por cada nível do jogador)
-    let randomBullet = 'comum';
+    let randomBullet = 'normal';
     const specialChance = 0.25 + (player.level * 0.02); 
-    
     if (Math.random() < specialChance) {
         randomBullet = SPECIAL_BULLETS_POOL[Math.floor(Math.random() * SPECIAL_BULLETS_POOL.length)];
     }
 
-    // Cria e adiciona o novo inimigo ao mundo
     enemies.push(new Enemy(spawnX, spawnY, randomAI, randomBullet));
 }
+
+
+
+
 
 // Começa com 3 inimigos iniciais espalhados para o jogador não começar sozinho
 spawnEnemy();
