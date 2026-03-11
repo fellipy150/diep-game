@@ -1,0 +1,165 @@
+/**
+ * FUNÇÃO MESTRE DE MIRA (SMART AIM)
+ * O inimigo chama esta função passando o tipo de bala, e ela decide
+ * automaticamente qual matemática usar e ajusta as velocidades.
+ */
+export function getSmartAim(shooterPos, targetPos, targetVel, baseSpeed, bulletType, targetRadius = 20) {
+    let effectiveSpeed = baseSpeed;
+
+    // 1. Adaptação de Velocidade (lida com as reduções do bullet.js)
+    if (bulletType === 'gigante') effectiveSpeed *= 0.3;
+    if (bulletType === 'balinhas') effectiveSpeed *= 1.2; // Balinhas costumam ser mais rápidas na prática
+
+    // 2. Projéteis Lançados (Lobbed) - Arco Parabólico
+    const lobbedTypes = ['bomba', 'acido', 'quicador', 'cola'];
+    if (lobbedTypes.includes(bulletType)) {
+        // No bullet.js, o flightTime padrão é 1.5s
+        return predictLobbed(targetPos, targetVel, 1.5);
+    }
+
+    // 3. Balas Teleguiadas
+    if (bulletType === 'teleguiada' || bulletType === 'drone') {
+        // Não precisa prever perfeitamente, atira com uma leve imprecisão
+        // porque a bala vai consertar a rota sozinha.
+        return predictInaccurate(shooterPos, targetPos, 0.1);
+    }
+
+    // 4. Bumerangue
+    if (bulletType === 'bumerangue') {
+        // O bumerangue tem alcance máximo e tempo fixo de ida e volta (1.5s).
+        // Vamos prever onde o jogador estará no ponto máximo de extensão (0.75s).
+        let futureX = targetPos.x + (targetVel.x * 0.75);
+        let futureY = targetPos.y + (targetVel.y * 0.75);
+        let dx = futureX - shooterPos.x;
+        let dy = futureY - shooterPos.y;
+        let len = Math.hypot(dx, dy);
+        return { x: dx / len, y: dy / len };
+    }
+
+    // 5. Para balas normais, escolhemos a estratégia baseada no estilo do inimigo
+    // (Por padrão usamos o Predict Intercept perfeito, mas você pode mudar para predictEdge
+    // se quiser que o inimigo seja nível "Hard").
+    return predictIntercept(shooterPos, targetPos, targetVel, effectiveSpeed);
+}
+
+/**
+ * 1. PREDICT PADRÃO (Interceptação Perfeita)
+ * Resolve a equação quadrática para achar o ponto de impacto.
+ */
+export function predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed) {
+    const rx = targetPos.x - shooterPos.x;
+    const ry = targetPos.y - shooterPos.y;
+
+    const a = (targetVel.x * targetVel.x) + (targetVel.y * targetVel.y) - (bulletSpeed * bulletSpeed);
+    const b = 2 * ((rx * targetVel.x) + (ry * targetVel.y));
+    const c = (rx * rx) + (ry * ry);
+
+    const disc = (b * b) - (4 * a * c);
+    if (disc < 0) return null; // Impossível alcançar
+
+    const t1 = (-b - Math.sqrt(disc)) / (2 * a);
+    const t2 = (-b + Math.sqrt(disc)) / (2 * a);
+
+    let t = Math.min(t1 > 0 ? t1 : Infinity, t2 > 0 ? t2 : Infinity);
+    if (t === Infinity) return null;
+
+    const futureX = targetPos.x + (targetVel.x * t);
+    const futureY = targetPos.y + (targetVel.y * t);
+
+    const dx = futureX - shooterPos.x;
+    const dy = futureY - shooterPos.y;
+    const len = Math.hypot(dx, dy);
+
+    if (len === 0) return { x: 0, y: 0 };
+    return { x: dx / len, y: dy / len, targetX: futureX, targetY: futureY };
+}
+
+/**
+ * 2. PREDICT LANÇADO (Lobbed)
+ * Ao invés de resolver aceleração, calcula exatamente onde o jogador
+ * vai estar quando o tempo de voo da bomba acabar.
+ */
+export function predictLobbed(targetPos, targetVel, flightTime) {
+    const futureX = targetPos.x + (targetVel.x * flightTime);
+    const futureY = targetPos.y + (targetVel.y * flightTime);
+
+    // Retorna as coordenadas X e Y exatas (pois o LobbedProjectile precisa de targetX e targetY)
+    return {
+        targetX: futureX,
+        targetY: futureY
+    };
+}
+
+/**
+ * 3. PREDICT DE ÁREA (Reachable Circle)
+ * Atira num ponto aleatório dentro do raio máximo que o jogador consegue alcançar.
+ */
+export function predictArea(shooterPos, targetPos, targetVel, bulletSpeed) {
+    const dx = targetPos.x - shooterPos.x;
+    const dy = targetPos.y - shooterPos.y;
+    const dist = Math.hypot(dx, dy);
+    const t = dist / bulletSpeed;
+    const targetSpeed = Math.hypot(targetVel.x, targetVel.y);
+    const maxRadius = targetSpeed * t;
+
+    const randomAngle = Math.random() * Math.PI * 2;
+    const randomR = Math.sqrt(Math.random()) * maxRadius;
+
+    const targetX = targetPos.x + Math.cos(randomAngle) * randomR;
+    const targetY = targetPos.y + Math.sin(randomAngle) * randomR;
+
+    const finalDx = targetX - shooterPos.x;
+    const finalDy = targetY - shooterPos.y;
+    const len = Math.hypot(finalDx, finalDy);
+
+    if (len === 0) return { x: 0, y: 0 };
+    return { x: finalDx / len, y: finalDy / len };
+}
+
+/**
+ * 4. TIRO IMPRECISO (Sem Predict)
+ */
+export function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
+    const dx = targetPos.x - shooterPos.x;
+    const dy = targetPos.y - shooterPos.y;
+    const baseAngle = Math.atan2(dy, dx);
+    const finalAngle = baseAngle + (Math.random() - 0.5) * 2 * inaccuracy;
+
+    return {
+        x: Math.cos(finalAngle),
+        y: Math.sin(finalAngle)
+    };
+}
+
+/**
+ * 5. EDGE PREDICT (Punição de Esquiva)
+ * Mira na "borda" da hitbox futura do jogador.
+ */
+export function predictEdge(shooterPos, targetPos, targetVel, bulletSpeed, targetRadius) {
+    const intercept = predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed);
+    if (!intercept) return null;
+
+    const futureX = intercept.targetX;
+    const futureY = intercept.targetY;
+
+    const backX = targetPos.x - futureX;
+    const backY = targetPos.y - futureY;
+    const backLen = Math.hypot(backX, backY);
+
+    let edgeX = futureX;
+    let edgeY = futureY;
+
+    if (backLen > 0) {
+        edgeX += (backX / backLen) * targetRadius;
+        edgeY += (backY / backLen) * targetRadius;
+    }
+
+    const dx = edgeX - shooterPos.x;
+    const dy = edgeY - shooterPos.y;
+    const len = Math.hypot(dx, dy);
+
+    if (len === 0) return { x: 0, y: 0 };
+    return { x: dx / len, y: dy / len };
+}
+
+

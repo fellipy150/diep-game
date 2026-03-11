@@ -1,27 +1,23 @@
-/* Reset básico e bloqueio de comportamentos nativos mobile */
 body {
     margin: 0;
     padding: 0;
     overflow: hidden;
     background: #111;
-    touch-action: none; /* Previne scroll e zoom nativos do navegador */
-    user-select: none;  /* Previne seleção acidental de elementos */
+    touch-action: none;
+    user-select: none;
     -webkit-user-select: none;
 }
 
-/* O canvas vai esticar para preencher a tela, 
-   mas a resolução lógica será controlada no main.js */
 canvas {
     display: block;
     width: 100vw;
     height: 100vh;
 }
 
-/* Base do Joystick */
-#joystick {
+/* Base comum para ambos os Joysticks */
+.joystick-base {
     position: fixed;
     bottom: 40px;
-    left: 40px;
     width: 120px;
     height: 120px;
     border-radius: 50%;
@@ -31,33 +27,24 @@ canvas {
     z-index: 10;
 }
 
-/* Botão móvel do Joystick */
-#stick {
+/* Posicionamento individual */
+#joystick-move { left: 40px; }
+#joystick-aim { right: 40px; border-color: rgba(255, 50, 50, 0.5); }
+
+/* O botão móvel dentro do Joystick */
+.stick {
     position: absolute;
-    /* Centralizado matematicamente: (120 - 40) / 2 = 40 */
-    left: 40px; 
-    top: 40px;
+    left: 38px; /* (120/2) - (40/2) - 2px da borda */
+    top: 38px;
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.7);
-    pointer-events: none; /* O toque deve ser capturado pela base (#joystick), não pelo stick */
+    pointer-events: none; /* A base captura os toques */
+    transition: transform 0.05s linear; /* Suaviza visualmente */
 }
 
-/* Botão de Tiro */
-#shoot {
-    position: fixed;
-    bottom: 55px;
-    right: 40px;
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    background: rgba(255, 50, 50, 0.4);
-    border: 2px solid rgba(255, 50, 50, 0.6);
-    z-index: 10;
-}
-
-/* Feedback visual ao tocar no botão de tiro */
-#shoot:active {
+#joystick-aim .stick {
     background: rgba(255, 50, 50, 0.7);
 }
+
