@@ -1,6 +1,5 @@
 import { ctx, canvas, GAME_WIDTH, GAME_HEIGHT, camera } from "./main.js";
 
-// Atualiza a posição da câmera para focar no alvo (Jogador ou Drone)
 export function updateCamera(player) {
     let targetX = player.x;
     let targetY = player.y;
@@ -19,28 +18,25 @@ export function updateCamera(player) {
     camera.y += (desiredY - camera.y) * 0.1;
 }
 
-// Renderiza todos os elementos visuais do jogo
 export function renderGame(player, enemies, hazards) {
     ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     desenharGrelha();
 
-    // Desenha perigos no chão
     if (hazards) {
         for (let h of hazards) {
             h.draw(ctx, camera);
         }
     }
 
-    // Desenha o jogador
     player.draw(ctx, camera);
 
-    // Desenha TODOS os inimigos
     if (enemies) {
         for (let e of enemies) {
             if (!e.dead) {
-                e.draw(ctx, camera);
+                // CORREÇÃO AQUI: Passamos o player para o inimigo desenhar as suas balas corretamente!
+                e.draw(ctx, camera, player); 
             }
         }
     }
