@@ -26,8 +26,6 @@ function loop(time) {
     }
     
     updateCamera(player);
-    
-    // Passamos a array de enemies para o renderer
     renderGame(player, enemies, hazards);
 
     if (isGameOver) {
@@ -38,30 +36,24 @@ function loop(time) {
 }
 
 function update(dt) {
-    // 1. Atualiza o Jogador
     player.update(dt);
-
-    // 2. Gere o nascimento de novos inimigos
     gerenciarSpawns(dt);
 
-    // 3. Recolhe TODAS as balas do jogo para a I.A. se desviar
     let allBullets = [...player.bullets];
     for (let e of enemies) {
         allBullets.push(...e.bullets);
     }
 
-    // 4. Atualiza os Inimigos
     for (let i = enemies.length - 1; i >= 0; i--) {
         let e = enemies[i];
         if (e.dead) {
-            enemies.splice(i, 1); // Remove os mortos da lista
-            player.gainXp(40); // Dá XP ao jogador!
+            enemies.splice(i, 1);
+            player.gainXp(40);
         } else {
             e.update(dt, player, enemies, allBullets);
         }
     }
 
-    // 5. Atualiza as Poças e Perigos no Chão
     for (let i = hazards.length - 1; i >= 0; i--) {
         hazards[i].update(dt);
         if (hazards[i].dead) {
@@ -69,10 +61,8 @@ function update(dt) {
         }
     }
 
-    // 6. Processa todas as Colisões (Tiros e Fogo Amigo)
     processarColisoes();
 
-    // 7. Verifica Game Over
     if (player.hp <= 0) {
         isGameOver = true;
     }
@@ -90,31 +80,75 @@ function verificarColisao(obj1, obj2) {
 }
 
 function processarColisoes() {
-    // A. Balas do Jogador -> Inimigos
-    for (let b of player.bullets) {
-        if (b.dead) continue;
-        for (let e of enemies) {
-            if (!e.dead && verificarColisao(b, e)) {
-                e.takeDamage(b.damage); // Usa o takeDamage para resetar o tempo de cura deles!
-                b.onHit(e);
-                if (b.dead) break; // Se a bala não for penetrante, para de verificar outros inimigos
+    // A. COLISÃO FÍSICA (Empurrão) E DANO MELEE
+    for (let e of enemies) {
+        if (e.dead) continue;
+        let dx = player.x - e.x;
+        let dy = player.y - e.y;
+        let dist = Math.hypot(dx, dy);
+        let minDist = player.radius + e.radius;
+
+        if (dist < minDist) {
+            let overlap = minDist - dist;
+            let nx = dx / dist || 1;
+            let ny = dy / dist || 0;
+            
+            player.x += nx * (overlap / 2);
+            player.y += ny * (overlap / 2);
+            e.x -= nx * (overlap / 2);
+            e.y -= ny * (overlap / 2);
+
+            if (e.aiType === 'melee' && e.meleeCooldown <= 0) {
+                player.hp -= 20; 
+                e.meleeCooldown = 1.0; 
+                aplicarEfeitoDeSolo(player, 'impact');
             }
         }
     }
 
-    // B. Balas dos Inimigos -> Jogador E Outros Inimigos (Fogo Amigo / PvEvE)
+    for (let i = 0; i < enemies.length; i++) {
+        for (let j = i + 1; j < enemies.length; j++) {
+            let e1 = enemies[i];
+            let e2 = enemies[j];
+            if (e1.dead || e2.dead) continue;
+
+            let dx = e1.x - e2.x;
+            let dy = e1.y - e2.y;
+            let dist = Math.hypot(dx, dy);
+            let minDist = e1.radius + e2.radius;
+
+            if (dist < minDist) {
+                let overlap = minDist - dist;
+                let nx = dx / dist || 1;
+                let ny = dy / dist || 0;
+                e1.x += nx * (overlap / 2);
+                e1.y += ny * (overlap / 2);
+                e2.x -= nx * (overlap / 2);
+                e2.y -= ny * (overlap / 2);
+            }
+        }
+    }
+
+    // Projéteis e Áreas
+    for (let b of player.bullets) {
+        if (b.dead) continue;
+        for (let e of enemies) {
+            if (!e.dead && verificarColisao(b, e)) {
+                e.takeDamage(b.damage);
+                b.onHit(e);
+                if (b.dead) break;
+            }
+        }
+    }
+
     for (let atirador of enemies) {
         for (let b of atirador.bullets) {
-            if (b.dead || !b.radius) continue; // Ignora balas mortas ou mísseis no ar (sem raio de colisão)
-
-            // Colisão com o Jogador
+            if (b.dead || !b.radius) continue;
             if (verificarColisao(b, player)) {
                 player.hp -= b.damage;
                 b.onHit(player);
                 continue;
             }
-
-            // Colisão com outros Inimigos (Se atirarem uns nos outros)
             for (let vitima of enemies) {
                 if (atirador !== vitima && !vitima.dead && verificarColisao(b, vitima)) {
                     vitima.takeDamage(b.damage);
@@ -125,16 +159,12 @@ function processarColisoes() {
         }
     }
 
-    // C. Hazards (Poças de Ácido, Fogo, Cola) -> Jogador e Inimigos
     for (let h of hazards) {
         if (!h.dead && h.canDamage()) {
-            // Afeta o Jogador
             if (verificarColisao({x: h.x, y: h.y, radius: h.radius}, player)) {
                 player.hp -= h.damage;
                 aplicarEfeitoDeSolo(player, h.type);
             }
-            
-            // Afeta Inimigos
             for (let e of enemies) {
                 if (!e.dead && verificarColisao({x: h.x, y: h.y, radius: h.radius}, e)) {
                     e.takeDamage(h.damage);
@@ -144,7 +174,7 @@ function processarColisoes() {
         }
     }
 
-    // D. Limpeza Visual (Remove balas que já colidiram)
+    // Cleanup
     player.bullets = player.bullets.filter(b => !b.dead);
     for (let e of enemies) {
         e.bullets = e.bullets.filter(b => !b.dead);
@@ -153,7 +183,7 @@ function processarColisoes() {
 
 function aplicarEfeitoDeSolo(entidade, tipoDeHazard) {
     if (tipoDeHazard === 'cola') {
-        entidade.speedMultiplicador = 0.3; // Aplica debuff
+        entidade.speedMultiplicador = 0.3;
         setTimeout(() => {
             entidade.speedMultiplicador = 1.0;
         }, 2000);
@@ -161,7 +191,7 @@ function aplicarEfeitoDeSolo(entidade, tipoDeHazard) {
 }
 
 // ==========================================
-// SISTEMA DE INTERFACE (MENUS)
+// INTERFACE SYSTEM (MENUS)
 // ==========================================
 
 function desenharGameOver() {
@@ -178,19 +208,17 @@ function desenharGameOver() {
     
     ctx.fillStyle = "white";
     ctx.font = "20px sans-serif";
-    ctx.fillText(`Chegaste ao Nível ${player.level}`, canvas.width / 2, canvas.height / 2 + 30);
-    ctx.fillText("Recarrega a página para tentar de novo", canvas.width / 2, canvas.height / 2 + 70);
+    ctx.fillText(`You reached Level ${player.level}`, canvas.width / 2, canvas.height / 2 + 30);
+    ctx.fillText("Reload the page to try again", canvas.width / 2, canvas.height / 2 + 70);
 }
 
 function mostrarMenuLevelUp(choices) {
     const overlay = document.createElement('div');
     overlay.id = 'levelup-overlay';
     overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+    overlay.style.top = '0'; overlay.style.left = '0';
+    overlay.style.width = '100vw'; overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
     overlay.style.display = 'flex';
     overlay.style.flexDirection = 'column';
     overlay.style.alignItems = 'center';
@@ -199,28 +227,38 @@ function mostrarMenuLevelUp(choices) {
     overlay.style.color = 'white';
     overlay.style.fontFamily = 'sans-serif';
 
+    // Proteção para ignorar toques no fundo do overlay
+    overlay.addEventListener('pointerdown', (e) => {
+        if (e.target === overlay) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+    });
+
     const titulo = document.createElement('h1');
-    titulo.innerText = `Nível ${player.level}! Escolhe um Upgrade:`;
-    titulo.style.textAlign = 'center';
+    titulo.innerText = `Level ${player.level}! Choose an Upgrade:`;
     titulo.style.marginBottom = '20px';
     overlay.appendChild(titulo);
 
     choices.forEach(upgrade => {
         const btn = document.createElement('button');
-        btn.style.margin = '10px';
-        btn.style.padding = '15px 20px';
-        btn.style.fontSize = '16px';
-        btn.style.backgroundColor = '#222';
+        btn.style.margin = '8px';
+        btn.style.padding = '12px';
+        btn.style.backgroundColor = '#111';
         btn.style.color = '#0ff';
-        btn.style.border = '2px solid #0ff';
-        btn.style.borderRadius = '8px';
-        btn.style.width = '85%';
-        btn.style.maxWidth = '350px';
+        btn.style.border = '1px solid #0ff';
+        btn.style.borderRadius = '4px';
+        btn.style.width = '300px';
+        btn.style.cursor = 'pointer';
         
         btn.innerHTML = `<strong>${upgrade.name}</strong><br><small style="color:#aaa">${upgrade.desc}</small>`;
         
-        btn.ontouchstart = (e) => { e.preventDefault(); selecionarUpgrade(upgrade.id, overlay); };
-        btn.onclick = () => selecionarUpgrade(upgrade.id, overlay);
+        // Resposta imediata e proteção de propagação
+        btn.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            selecionarUpgrade(upgrade.id, overlay);
+        });
 
         overlay.appendChild(btn);
     });
@@ -230,8 +268,8 @@ function mostrarMenuLevelUp(choices) {
 
 function selecionarUpgrade(upgradeId, overlay) {
     player.applyUpgrade(upgradeId);
-    document.body.removeChild(overlay);
+    if (overlay && overlay.parentNode) {
+        document.body.removeChild(overlay);
+    }
     isPaused = false;
 }
-
-

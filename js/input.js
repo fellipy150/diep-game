@@ -22,9 +22,16 @@ export class Input {
     }
 
     initEvents() {
-        // Previne comportamentos de scroll na tela inteira
-        document.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
-        document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        const handlePrevention = (e) => {
+            // Só impede o comportamento padrão se o alvo NÃO for um botão ou input
+            // Isso permite que o menu de Level Up e botões de UI funcionem normalmente
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                if (e.cancelable) e.preventDefault();
+            }
+        };
+
+        document.addEventListener('touchstart', handlePrevention, { passive: false });
+        document.addEventListener('touchmove', handlePrevention, { passive: false });
 
         this.setupJoystick(this.joyMove, this.stickMove, 'move');
         this.setupJoystick(this.joyAim, this.stickAim, 'aim');
@@ -86,7 +93,6 @@ export class Input {
     }
 
     updateJoystick(touch, centerX, centerY, stickEl, type) {
-        // Agora o dx e dy são estritamente calculados a partir do centro da base do joystick
         let dx = touch.clientX - centerX;
         let dy = touch.clientY - centerY;
         let dist = Math.hypot(dx, dy);

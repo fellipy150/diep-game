@@ -2,7 +2,7 @@ import { Bullet, LobbedProjectile } from "./bullet.js";
 import { getSmartAim } from "./predict.js";
 
 export class Enemy {
-    constructor(x, y, aiType = 'agressivo', bulletType = 'comum') {
+    constructor(x, y, aiType = 'aggressive', bulletType = 'normal') {
         this.x = x;
         this.y = y;
         this.radius = 25;
@@ -14,7 +14,13 @@ export class Enemy {
         this.aiType = aiType;
         this.bulletType = bulletType;
         
-        this.speed = 120;
+        // Física de Inércia dos inimigos
+        this.velX = 0;
+        this.velY = 0;
+        this.acceleration = 800;
+        this.friction = 0.85;
+        this.meleeCooldown = 0; // Cooldown de dano corpo-a-corpo
+
         this.bullets = [];
         this.target = null;
 
@@ -34,16 +40,16 @@ export class Enemy {
     aplicarAtributosPorIA() {
         switch (this.aiType) {
             case 'sniper':
-                this.speed = 90;
+                this.acceleration = 500;
                 this.fireRate = 2.5;
                 break;
-            case 'corpo_a_corpo':
-                this.speed = 200;
+            case 'melee':
+                this.acceleration = 1400;
                 this.maxHp = 100;
                 this.hp = this.maxHp;
                 break;
-            case 'cura':
-                this.speed = 160;
+            case 'healer':
+                this.acceleration = 1000;
                 break;
         }
     }
@@ -63,20 +69,20 @@ export class Enemy {
         this.timeSinceLastShot += dt;
         if (this.shootCooldown > 0) this.shootCooldown -= dt;
         if (this.dodgeTimer > 0) this.dodgeTimer -= dt;
+        if (this.meleeCooldown > 0) this.meleeCooldown -= dt;
 
         // Cura passiva
         if (this.timeSinceLastDamage > 3 && this.timeSinceLastShot > 3) {
             this.hp = Math.min(this.maxHp, this.hp + (this.maxHp * 0.10 * dt));
         }
 
-        // CORREÇÃO: Passamos o 'player' para as funções que precisam dele!
         this.selecionarAlvo(player, allEnemies);
         this.atualizarMovimento(dt, player, allBullets); 
         this.atualizarTiro();
 
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             let b = this.bullets[i];
-            b.update(dt, player); // Passamos o player para a bala também
+            b.update(dt, player);
             if (b.dead || b.lifeTime > b.maxLife) {
                 this.bullets.splice(i, 1);
             }
@@ -84,7 +90,7 @@ export class Enemy {
     }
 
     selecionarAlvo(player, allEnemies) {
-        if (this.aiType === 'cura') {
+        if (this.aiType === 'healer') {
             this.target = null;
             return;
         }
@@ -105,7 +111,6 @@ export class Enemy {
         this.target = alvoMaisProximo;
     }
 
-    // CORREÇÃO: Adicionámos o 'player' aos parâmetros da função
     atualizarMovimento(dt, player, allBullets) {
         let moveX = 0;
         let moveY = 0;
@@ -131,7 +136,7 @@ export class Enemy {
             moveX = this.dodgeVector.x;
             moveY = this.dodgeVector.y;
         } else {
-            if (this.aiType === 'perdido') {
+            if (this.aiType === 'lost') {
                 this.randomMoveTimer -= dt;
                 if (this.randomMoveTimer <= 0) {
                     let angle = Math.random() * Math.PI * 2;
@@ -141,8 +146,7 @@ export class Enemy {
                 moveX = this.randomMoveDir.x;
                 moveY = this.randomMoveDir.y;
             } 
-            else if (this.aiType === 'cura') {
-                // AGORA O PLAYER ESTÁ DEFINIDO AQUI! Foge do player.
+            else if (this.aiType === 'healer') {
                 let angleToPlayer = Math.atan2(this.y - player.y, this.x - player.x);
                 moveX = Math.cos(angleToPlayer);
                 moveY = Math.sin(angleToPlayer);
@@ -155,8 +159,8 @@ export class Enemy {
                 let dirY = distToTarget === 0 ? 0 : dy / distToTarget;
 
                 switch (this.aiType) {
-                    case 'agressivo':
-                    case 'corpo_a_corpo':
+                    case 'aggressive':
+                    case 'melee':
                         moveX = dirX;
                         moveY = dirY;
                         break;
@@ -169,7 +173,7 @@ export class Enemy {
                             moveY = dirY;
                         }
                         break;
-                    case 'estrategico':
+                    case 'strategic':
                         if (distToTarget < 200) {
                             moveX = -dirX;
                             moveY = -dirY;
@@ -185,18 +189,26 @@ export class Enemy {
             }
         }
 
+        // Normalização do vetor de direção
         let length = Math.hypot(moveX, moveY);
         if (length > 0) {
             moveX /= length;
             moveY /= length;
         }
 
-        this.x += moveX * this.speed * dt;
-        this.y += moveY * this.speed * dt;
+        // Aplicação da Física de Inércia
+        this.velX += moveX * this.acceleration * dt;
+        this.velY += moveY * this.acceleration * dt;
+
+        this.velX *= this.friction;
+        this.velY *= this.friction;
+
+        this.x += this.velX * dt;
+        this.y += this.velY * dt;
     }
 
     atualizarTiro() {
-        if (this.aiType === 'corpo_a_corpo' || this.aiType === 'cura' || !this.target) return;
+        if (this.aiType === 'melee' || this.aiType === 'healer' || !this.target) return;
 
         let dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
         if (this.shootCooldown > 0 || dist > 800) return;
@@ -238,7 +250,6 @@ export class Enemy {
         this.timeSinceLastShot = 0;
     }
 
-    // CORREÇÃO: Adicionámos o 'player' aos parâmetros para que as balas invisíveis saibam onde ele está
     draw(ctx, camera, player) {
         let drawX = this.x - camera.x;
         let drawY = this.y - camera.y;
@@ -270,15 +281,13 @@ export class Enemy {
 
     getCorPorIA() {
         switch(this.aiType) {
-            case 'agressivo': return '#ff3333';
+            case 'aggressive': return '#ff3333';
             case 'sniper': return '#cc00ff';
-            case 'estrategico': return '#ffaa00';
-            case 'corpo_a_corpo': return '#880000';
-            case 'cura': return '#00ff88';
-            case 'perdido': return '#888888';
+            case 'strategic': return '#ffaa00';
+            case 'melee': return '#880000';
+            case 'healer': return '#00ff88';
+            case 'lost': return '#888888';
             default: return 'red';
         }
     }
 }
-
-

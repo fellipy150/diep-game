@@ -22,7 +22,7 @@ export const camera = { x: 0, y: 0 };
 export const input = new Input();
 export const player = new Player(500, 500);
 
-// Substituímos o inimigo único por uma Array de inimigos!
+// Array de inimigos ativos
 export const enemies = [];
 
 // 4. Sistema de Spawner (Gerador de Inimigos)
@@ -45,34 +45,69 @@ function spawnEnemy() {
     let spawnX, spawnY;
     const edge = Math.floor(Math.random() * 4);
 
-    if (edge === 0) { spawnX = camera.x + (Math.random() * GAME_WIDTH); spawnY = camera.y - margin; }
-    else if (edge === 1) { spawnX = camera.x + (Math.random() * GAME_WIDTH); spawnY = camera.y + GAME_HEIGHT + margin; }
-    else if (edge === 2) { spawnX = camera.x - margin; spawnY = camera.y + (Math.random() * GAME_HEIGHT); }
-    else { spawnX = camera.x + GAME_WIDTH + margin; spawnY = camera.y + (Math.random() * GAME_HEIGHT); }
-
-    // I.A. em Inglês
-    const aiTypes = ['aggressive', 'lost', 'sniper', 'strategic', 'melee', 'healer'];
-    const randomAI = aiTypes[Math.floor(Math.random() * aiTypes.length)];
-
-    let randomBullet = 'normal';
-    const specialChance = 0.25 + (player.level * 0.02); 
-    if (Math.random() < specialChance) {
-        randomBullet = SPECIAL_BULLETS_POOL[Math.floor(Math.random() * SPECIAL_BULLETS_POOL.length)];
+    // Lógica de coordenadas fora da visão da câmara
+    if (edge === 0) { 
+        spawnX = camera.x + (Math.random() * GAME_WIDTH); 
+        spawnY = camera.y - margin; 
+    } else if (edge === 1) { 
+        spawnX = camera.x + (Math.random() * GAME_WIDTH); 
+        spawnY = camera.y + GAME_HEIGHT + margin; 
+    } else if (edge === 2) { 
+        spawnX = camera.x - margin; 
+        spawnY = camera.y + (Math.random() * GAME_HEIGHT); 
+    } else { 
+        spawnX = camera.x + GAME_WIDTH + margin; 
+        spawnY = camera.y + (Math.random() * GAME_HEIGHT); 
     }
 
-    enemies.push(new Enemy(spawnX, spawnY, randomAI, randomBullet));
+    // --- SISTEMA DE DIFICULDADE DINÂMICA ---
+    
+    // Define em qual nível a dificuldade máxima (distribuição igual) é atingida
+    const maxDifficultyLevel = 20; 
+    const progression = Math.min(1, (player.level - 1) / (maxDifficultyLevel - 1));
+
+    // 1. SORTEIO DE I.A. (Progressão de Inteligência)
+    const aiTypes = ['aggressive', 'lost', 'sniper', 'strategic', 'melee', 'healer'];
+    const normalAiType = 'lost'; // Definimos 'lost' como a I.A. "Normal/Fácil"
+    
+    let selectedAI;
+    const initialNormalAiProb = 0.9; // No início, 90% são bobos ('lost')
+    const finalNormalAiProb = 1 / aiTypes.length; // No lvl 20, a chance é igual para todos
+    
+    // Interpolação linear da probabilidade baseada no nível
+    const currentNormalAiProb = initialNormalAiProb - (initialNormalAiProb - finalNormalAiProb) * progression;
+
+    if (Math.random() < currentNormalAiProb) {
+        selectedAI = normalAiType;
+    } else {
+        // Sorteia entre as I.As restantes (especializadas e mais letais)
+        const harderAIs = aiTypes.filter(type => type !== normalAiType);
+        selectedAI = harderAIs[Math.floor(Math.random() * harderAIs.length)];
+    }
+
+    // 2. SORTEIO DE BALAS (Progressão de Arsenal)
+    let selectedBullet;
+    const initialNormalBulletProb = 0.9; // No início, 90% usam balas comuns
+    const totalBulletTypes = SPECIAL_BULLETS_POOL.length + 1; // +1 para a 'normal'
+    const finalNormalBulletProb = 1 / totalBulletTypes;
+
+    const currentNormalBulletProb = initialNormalBulletProb - (initialNormalBulletProb - finalNormalBulletProb) * progression;
+
+    if (Math.random() < currentNormalBulletProb) {
+        selectedBullet = 'normal';
+    } else {
+        // Sorteia uma munição especial da pool disponível
+        selectedBullet = SPECIAL_BULLETS_POOL[Math.floor(Math.random() * SPECIAL_BULLETS_POOL.length)];
+    }
+
+    // Criar e adicionar o novo inimigo com os atributos sorteados
+    enemies.push(new Enemy(spawnX, spawnY, selectedAI, selectedBullet));
 }
 
-
-
-
-
-// Começa com 3 inimigos iniciais espalhados para o jogador não começar sozinho
+// Inicialização: 3 inimigos iniciais para começar a ação
 spawnEnemy();
 spawnEnemy();
 spawnEnemy();
 
-// 5. Iniciar o jogo
+// 5. Iniciar o loop principal do jogo
 startGameLoop();
-
-
