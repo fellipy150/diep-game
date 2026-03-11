@@ -1,11 +1,11 @@
-import { gameData } from "./main.js";
+import { gameData } from "./configManager.js";
 
 // Lista global para processamento de perigos (Fogo, ácido, etc.)
 export const hazards = [];
 
 export class Bullet {
     constructor(x, y, dirX, dirY, baseSpeed, baseDamage, owner = 'player', type = 'normal', target = null) {
-        // Acessa a configuração carregada do JSON global
+        // Agora o gameData já estará garantidamente carregado aqui pelo configManager
         const config = gameData.bullets[type] || gameData.bullets.normal;
         
         this.x = x;
@@ -19,7 +19,7 @@ export class Bullet {
         this.dead = false;
         this.lifeTime = 0;
         
-        // Define tempo de vida baseado no tipo
+        // Define tempo de vida baseado no tipo (pode ser movido para o JSON futuramente)
         this.maxLife = type === 'time_bomb' ? (owner === 'player' ? 5 : 3) : (type === 'drone' ? 60 : 2);
         
         // Atributos escalonados pelos multiplicadores do JSON
@@ -129,7 +129,6 @@ export class Bullet {
         let drawY = this.y - camera.y;
         let alpha = 1;
         
-        // Efeito de camuflagem para balas invisíveis
         if (this.type === 'invisible' && playerPos) {
             let d = Math.hypot(this.x - playerPos.x, this.y - playerPos.y);
             alpha = Math.max(0, 1 - (d / 400));
@@ -146,6 +145,7 @@ export class Bullet {
 
 export class LobbedProjectile {
     constructor(x, y, targetX, targetY, type = 'bomb', baseDamage) {
+        // Acesso ao gameData garantido pelo configManager
         const config = gameData.bullets[type] || gameData.bullets.bomb;
         
         this.startX = x; this.startY = y;
@@ -166,7 +166,7 @@ export class LobbedProjectile {
         
         this.x = this.startX + (this.targetX - this.startX) * p;
         this.y = this.startY + (this.targetY - this.startY) * p;
-        this.z = Math.sin(p * Math.PI) * 200; // Arco parabólico
+        this.z = Math.sin(p * Math.PI) * 200; 
     }
 
     land() {
@@ -183,11 +183,9 @@ export class LobbedProjectile {
         let dx = this.x - camera.x;
         let dy = (this.y - this.z) - camera.y;
         
-        // Sombra
         ctx.fillStyle = "rgba(0,0,0,0.2)";
         ctx.beginPath(); ctx.arc(this.x - camera.x, this.y - camera.y, 8, 0, Math.PI*2); ctx.fill();
         
-        // Projétil no ar
         ctx.fillStyle = this.type === 'acid' ? 'lime' : 'white';
         ctx.beginPath(); ctx.arc(dx, dy, 10, 0, Math.PI*2); ctx.fill();
     }
@@ -225,7 +223,8 @@ export class Hazard {
 }
 
 /**
- * Pool de munições especiais derivada dinamicamente do JSON carregado.
- * Retorna todos os IDs de balas exceto a 'normal'.
+ * Pool de munições especiais derivada dinamicamente.
+ * Nota: Como é um export constante, será preenchido assim que o configManager
+ * completar a carga inicial do objeto gameData.
  */
 export const SPECIAL_BULLETS_POOL = Object.keys(gameData.bullets || {}).filter(k => k !== 'normal');

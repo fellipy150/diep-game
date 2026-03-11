@@ -1,4 +1,5 @@
-import { input, gameData } from "./main.js";
+import { input } from "./main.js";
+import { gameData } from "./configManager.js";
 import { Bullet, LobbedProjectile, SPECIAL_BULLETS_POOL } from "./bullet.js";
 
 export class Player {
@@ -23,9 +24,9 @@ export class Player {
         this.multiShot = 1;
         this.currentBulletType = 'normal';
 
-        // Sistema de Upgrades e Sinergias
-        this.upgradeCounts = {}; // Rastreia quantos de cada upgrade o player pegou
-        this.activeSynergies = []; // IDs das sinergias desbloqueadas
+        // Sistema de Upgrades e Sinergias (Persistência de Dados)
+        this.upgradeCounts = {}; 
+        this.activeSynergies = []; 
         
         // Controle de disparo
         this.shootTimer = 0;
@@ -48,7 +49,7 @@ export class Player {
         this.x += this.velX * dt;
         this.y += this.velY * dt;
 
-        // 2. Cooldown de Tiro Dinâmico (Lido do gameData)
+        // 2. Cooldown de Tiro Dinâmico (Lido do gameData carregado)
         const config = gameData.bullets[this.currentBulletType] || gameData.bullets['normal'];
         let effectiveFireRate = this.fireRate * (config.fireRateMult || 1);
 
@@ -71,6 +72,7 @@ export class Player {
         const config = gameData.bullets[this.currentBulletType] || gameData.bullets['normal'];
         let baseAngle = Math.atan2(input.aim.y, input.aim.x);
         
+        // Lógica de escalonamento de tiros
         let shotCount = 1;
         if (config.multishotScale === 0) shotCount = 1;
         else shotCount = Math.max(1, Math.round(this.multiShot * config.multishotScale));
@@ -102,7 +104,7 @@ export class Player {
 
     generateUpgrades() {
         let choices = [];
-        // Sorteia 4 opções do JSON de Upgrades
+        // Sorteia opções diretamente do catálogo JSON
         let shuffledBase = [...gameData.upgrades.statUpgrades].sort(() => 0.5 - Math.random());
 
         // 25% de chance de oferecer munição especial
@@ -125,11 +127,11 @@ export class Player {
         // 1. Troca de Arma
         if (upgradeId.startsWith('bullet_')) {
             this.currentBulletType = upgradeId.replace('bullet_', '');
-            this.checkSynergies(); // Trocar de bala pode ativar uma sinergia
+            this.checkSynergies(); 
             return;
         }
 
-        // 2. Registro e Aplicação de Stats
+        // 2. Registro e Aplicação de Stats via gameData
         this.upgradeCounts[upgradeId] = (this.upgradeCounts[upgradeId] || 0) + 1;
         const upgrade = gameData.upgrades.statUpgrades.find(u => u.id === upgradeId);
         
@@ -137,20 +139,19 @@ export class Player {
             if (upgrade.type === 'multiply') this[upgrade.stat] *= upgrade.value;
             else if (upgrade.type === 'add') this[upgrade.stat] += upgrade.value;
             
-            // Cura especial para Heart Upgrade
+            // Especial: Cura completa ao aumentar HP Máximo
             if (upgradeId === 'maxHp') this.hp = this.maxHp;
         }
 
-        // 3. Checa Sinergias
+        // 3. Verificação de Sinergias
         this.checkSynergies();
     }
 
     checkSynergies() {
         gameData.synergies.synergies.forEach(syn => {
-            // Verifica se a sinergia já não está ativa e se a bala corresponde
+            // Verifica requisitos: Arma correta + Quantidade de Upgrades
             if (!this.activeSynergies.includes(syn.id) && this.currentBulletType === syn.requiredBullet) {
                 
-                // Verifica se todos os upgrades necessários atingiram a quantidade mínima
                 const metRequirements = Object.keys(syn.requiredUpgrades).every(reqId => 
                     (this.upgradeCounts[reqId] || 0) >= syn.requiredUpgrades[reqId]
                 );
@@ -158,7 +159,6 @@ export class Player {
                 if (metRequirements) {
                     this.activeSynergies.push(syn.id);
                     console.log("%c SYNERGY UNLOCKED: " + syn.name, "color: #ff0; font-weight: bold; font-size: 14px;");
-                    // O efeito da sinergia é lido no renderer.js ou bullet.js consultando activeSynergies
                 }
             }
         });
@@ -170,13 +170,13 @@ export class Player {
 
         for (let b of this.bullets) b.draw(ctx, camera, { x: this.x, y: this.y });
 
-        // Corpo do Player
+        // Visual do Jogador
         ctx.fillStyle = "cyan";
         ctx.beginPath();
         ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Feedback visual de Sinergias (Aura)
+        // Aura de Sinergia
         if (this.activeSynergies.length > 0) {
             ctx.strokeStyle = "rgba(255, 255, 0, 0.5)";
             ctx.lineWidth = 3;
@@ -185,7 +185,6 @@ export class Player {
             ctx.stroke();
         }
 
-        // Barras de UI Flutuantes
         this.drawBars(ctx, drawX, drawY);
     }
 

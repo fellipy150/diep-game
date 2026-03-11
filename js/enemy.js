@@ -1,10 +1,10 @@
 import { Bullet, LobbedProjectile, hazards } from "./bullet.js";
 import { getSmartAim } from "./predict.js";
-import { gameData } from "./main.js";
+import { gameData } from "./configManager.js"; // Importação centralizada
 
 export class Enemy {
     constructor(x, y, aiType = 'aggressive', bulletType = 'normal') {
-        // Acessa a configuração específica da IA vinda do JSON
+        // Acessa a configuração específica da IA vinda do JSON através do configManager
         const config = gameData.enemies.aiTypes[aiType] || gameData.enemies.aiTypes['lost'];
         
         this.x = x;
@@ -22,20 +22,20 @@ export class Enemy {
         this.maxHp = Math.floor(Math.random() * (maxHp - minHp + 1)) + minHp;
         this.hp = this.maxHp;
         
-        // Física e Movimentação (Baseada no multiplicador da IA)
+        // Física e Movimentação (Multiplicadores aplicados no nascimento)
         this.velX = 0;
         this.velY = 0;
         this.acceleration = 800 * (config.accelMult || 1.0);
         this.friction = 0.85;
         this.meleeCooldown = 0;
 
-        // Tiro
+        // Configuração de Combate
         this.bullets = [];
         this.target = null;
         this.shootCooldown = 0;
         this.fireRate = config.fireRate || 1.5;
 
-        // Estados de IA e Esquiva
+        // Estados Internos de IA
         this.timeSinceLastDamage = 0;
         this.timeSinceLastShot = 0;
         this.randomMoveDir = { x: Math.random() - 0.5, y: Math.random() - 0.5 };
@@ -61,7 +61,7 @@ export class Enemy {
         if (this.dodgeTimer > 0) this.dodgeTimer -= dt;
         if (this.meleeCooldown > 0) this.meleeCooldown -= dt;
 
-        // Cura passiva (após 3s sem levar ou dar dano)
+        // Cura passiva (após 3s de inatividade em combate)
         if (this.timeSinceLastDamage > 3 && this.timeSinceLastShot > 3) {
             this.hp = Math.min(this.maxHp, this.hp + (this.maxHp * 0.10 * dt));
         }
@@ -70,6 +70,7 @@ export class Enemy {
         this.atualizarMovimento(dt, player, allBullets); 
         this.atualizarTiro();
 
+        // Atualização de projéteis próprios
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             let b = this.bullets[i];
             b.update(dt, player);
@@ -104,7 +105,7 @@ export class Enemy {
         let moveX = 0;
         let moveY = 0;
 
-        // Lógica de esquiva de projéteis
+        // Lógica de esquiva reativa
         if (this.dodgeTimer <= 0) {
             for (let b of allBullets) {
                 if (b.sender === this || b.owner === this) continue;
@@ -123,7 +124,7 @@ export class Enemy {
             moveX = this.dodgeVector.x;
             moveY = this.dodgeVector.y;
         } else {
-            // Lógica baseada no tipo de IA
+            // Comportamentos por tipo de IA
             if (this.aiType === 'lost') {
                 this.randomMoveTimer -= dt;
                 if (this.randomMoveTimer <= 0) {
@@ -158,18 +159,19 @@ export class Enemy {
                     case 'strategic':
                         if (distToTarget < 200) { moveX = -dirX; moveY = -dirY; }
                         else if (distToTarget > 300) { moveX = dirX; moveY = dirY; }
-                        else { moveX = -dirY; moveY = dirX; } // Orbita o alvo
+                        else { moveX = -dirY; moveY = dirX; } // Movimento orbital
                         break;
                 }
             }
         }
 
+        // Normalização de Vetor
         let length = Math.hypot(moveX, moveY);
         if (length > 0) {
             moveX /= length; moveY /= length;
         }
 
-        // Aplicação da Física de Inércia
+        // Integração de Física (Inércia)
         this.velX += moveX * this.acceleration * dt;
         this.velY += moveY * this.acceleration * dt;
         this.velX *= this.friction;
@@ -212,13 +214,13 @@ export class Enemy {
 
         for (let b of this.bullets) b.draw(ctx, camera, player); 
 
-        // Corpo do Inimigo com cor vinda do JSON
+        // Corpo do Inimigo (Cor lida do JSON)
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Olho (indica direção do alvo)
+        // Olho direcional
         if (this.target) {
             let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
             ctx.fillStyle = "black";
@@ -227,7 +229,7 @@ export class Enemy {
             ctx.fill();
         }
 
-        // Barra de Vida
+        // Barra de Vida flutuante
         let hpRatio = this.hp / this.maxHp;
         ctx.fillStyle = "red";
         ctx.fillRect(drawX - 20, drawY - 35, 40, 5);
