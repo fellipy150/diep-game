@@ -1,35 +1,12 @@
-// Global list for hazard processing (Hazards: fire, acid, etc.)
-export const hazards = [];
+import { gameData } from "./main.js";
 
-/**
- * BULLET_CONFIG: The "JSON" equivalent for bullet balancing.
- * Controls how each bullet type behaves and scales with upgrades.
- */
-export const BULLET_CONFIG = {
-    normal: { speedMult: 1, damageMult: 1, fireRateMult: 1, multishotScale: 1, type: 'linear', color: 'white' },
-    fire: { speedMult: 1, damageMult: 0.8, fireRateMult: 1, multishotScale: 1, type: 'linear', color: 'orange' },
-    ice: { speedMult: 1.1, damageMult: 0.7, fireRateMult: 0.9, multishotScale: 1, type: 'linear', color: 'lightblue' },
-    homing: { speedMult: 0.8, damageMult: 0.8, fireRateMult: 1.2, multishotScale: 1, type: 'linear', color: 'magenta' },
-    rubber: { speedMult: 1, damageMult: 1, fireRateMult: 1, multishotScale: 1, type: 'linear', color: 'pink' },
-    small: { speedMult: 1.5, damageMult: 0.3, fireRateMult: 0.4, multishotScale: 2, type: 'linear', color: 'white', radius: 2 },
-    time_bomb: { speedMult: 0.7, damageMult: 1.5, fireRateMult: 1.5, multishotScale: 1, type: 'linear', color: 'yellow' },
-    boomerang: { speedMult: 1, damageMult: 1.2, fireRateMult: 1.2, multishotScale: 1, type: 'linear', color: 'cyan' },
-    shuriken: { speedMult: 1.8, damageMult: 0.6, fireRateMult: 0.7, multishotScale: 1.5, type: 'linear', color: 'silver' },
-    invisible: { speedMult: 1.1, damageMult: 1.1, fireRateMult: 1.1, multishotScale: 1, type: 'linear', color: 'rgba(255,255,255,0.5)' },
-    sine: { speedMult: 0.9, damageMult: 1, fireRateMult: 1, multishotScale: 1, type: 'linear', color: 'lime' },
-    giant: { speedMult: 0.25, damageMult: 10, fireRateMult: 3, multishotScale: 0, type: 'linear', color: 'red', radius: 40 },
-    mine: { speedMult: 0.6, damageMult: 2, fireRateMult: 2, multishotScale: 1, type: 'linear', color: 'darkred' },
-    drone: { speedMult: 0.5, damageMult: 1.5, fireRateMult: 5, multishotScale: 0, type: 'linear', color: 'cyan', radius: 12 },
-    // Lobbed (Thrown) Projectiles
-    bomb: { damageMult: 2, fireRateMult: 1.5, multishotScale: 1, type: 'lobbed', color: 'darkred' },
-    acid: { damageMult: 0.5, fireRateMult: 1.5, multishotScale: 1, type: 'lobbed', color: 'lime' },
-    quicker: { damageMult: 1, fireRateMult: 1.2, multishotScale: 1, type: 'lobbed', color: 'gray' },
-    glue: { damageMult: 0.2, fireRateMult: 1.2, multishotScale: 1, type: 'lobbed', color: 'brown' }
-};
+// Lista global para processamento de perigos (Fogo, ácido, etc.)
+export const hazards = [];
 
 export class Bullet {
     constructor(x, y, dirX, dirY, baseSpeed, baseDamage, owner = 'player', type = 'normal', target = null) {
-        const config = BULLET_CONFIG[type] || BULLET_CONFIG.normal;
+        // Acessa a configuração carregada do JSON global
+        const config = gameData.bullets[type] || gameData.bullets.normal;
         
         this.x = x;
         this.y = y;
@@ -41,8 +18,11 @@ export class Bullet {
         this.target = target;
         this.dead = false;
         this.lifeTime = 0;
+        
+        // Define tempo de vida baseado no tipo
         this.maxLife = type === 'time_bomb' ? (owner === 'player' ? 5 : 3) : (type === 'drone' ? 60 : 2);
         
+        // Atributos escalonados pelos multiplicadores do JSON
         this.speed = baseSpeed * (config.speedMult || 1);
         this.damage = baseDamage * (config.damageMult || 1);
         this.radius = config.radius || 5;
@@ -51,7 +31,7 @@ export class Bullet {
         this.vx = dirX * this.speed;
         this.vy = dirY * this.speed;
 
-        // Specialized state
+        // Estados especializados
         this.startX = x;
         this.startY = y;
         this.baseX = x;
@@ -148,10 +128,13 @@ export class Bullet {
         let drawX = this.x - camera.x;
         let drawY = this.y - camera.y;
         let alpha = 1;
+        
+        // Efeito de camuflagem para balas invisíveis
         if (this.type === 'invisible' && playerPos) {
             let d = Math.hypot(this.x - playerPos.x, this.y - playerPos.y);
             alpha = Math.max(0, 1 - (d / 400));
         }
+        
         ctx.globalAlpha = alpha;
         ctx.fillStyle = this.color;
         ctx.beginPath();
@@ -163,10 +146,12 @@ export class Bullet {
 
 export class LobbedProjectile {
     constructor(x, y, targetX, targetY, type = 'bomb', baseDamage) {
-        const config = BULLET_CONFIG[type] || BULLET_CONFIG.bomb;
+        const config = gameData.bullets[type] || gameData.bullets.bomb;
+        
         this.startX = x; this.startY = y;
         this.targetX = targetX; this.targetY = targetY;
         this.x = x; this.y = y; this.z = 0;
+        
         this.type = type;
         this.damage = baseDamage * (config.damageMult || 1);
         this.lifeTime = 0;
@@ -178,9 +163,10 @@ export class LobbedProjectile {
         this.lifeTime += dt;
         let p = this.lifeTime / this.flightTime;
         if (p >= 1) { this.land(); return; }
+        
         this.x = this.startX + (this.targetX - this.startX) * p;
         this.y = this.startY + (this.targetY - this.startY) * p;
-        this.z = Math.sin(p * Math.PI) * 200;
+        this.z = Math.sin(p * Math.PI) * 200; // Arco parabólico
     }
 
     land() {
@@ -196,8 +182,12 @@ export class LobbedProjectile {
     draw(ctx, camera) {
         let dx = this.x - camera.x;
         let dy = (this.y - this.z) - camera.y;
+        
+        // Sombra
         ctx.fillStyle = "rgba(0,0,0,0.2)";
         ctx.beginPath(); ctx.arc(this.x - camera.x, this.y - camera.y, 8, 0, Math.PI*2); ctx.fill();
+        
+        // Projétil no ar
         ctx.fillStyle = this.type === 'acid' ? 'lime' : 'white';
         ctx.beginPath(); ctx.arc(dx, dy, 10, 0, Math.PI*2); ctx.fill();
     }
@@ -224,11 +214,18 @@ export class Hazard {
         let dy = this.y - camera.y;
         let a = 1 - (this.lifeTime / this.maxLife);
         ctx.globalAlpha = a * 0.5;
-        ctx.fillStyle = this.type === 'fire' ? 'orange' : (this.type === 'acid' ? 'lime' : (this.type === 'glue' ? 'brown' : 'yellow'));
+        
+        ctx.fillStyle = this.type === 'fire' ? 'orange' : 
+                       (this.type === 'acid' ? 'lime' : 
+                       (this.type === 'glue' ? 'brown' : 'yellow'));
+                       
         ctx.beginPath(); ctx.arc(dx, dy, this.radius, 0, Math.PI*2); ctx.fill();
         ctx.globalAlpha = 1;
     }
 }
 
-export const SPECIAL_BULLETS_POOL = Object.keys(BULLET_CONFIG).filter(k => k !== 'normal');
-
+/**
+ * Pool de munições especiais derivada dinamicamente do JSON carregado.
+ * Retorna todos os IDs de balas exceto a 'normal'.
+ */
+export const SPECIAL_BULLETS_POOL = Object.keys(gameData.bullets || {}).filter(k => k !== 'normal');

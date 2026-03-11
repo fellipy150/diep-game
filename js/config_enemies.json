@@ -1,0 +1,35 @@
+{
+  "aiTypes": {
+    "aggressive": {
+      "accelMult": 1.0,
+      "hpRange": [150, 300],
+      "color": "#ff3333",
+      "description": "Chases you directly."
+    },
+    "sniper": {
+      "accelMult": 0.7,
+      "hpRange": [100, 200],
+      "color": "#cc00ff",
+      "description": "Stays away and aims perfectly."
+    },
+    "melee": {
+      "accelMult": 1.5,
+      "hpRange": [80, 150],
+      "color": "#880000",
+      "description": "Fast but must touch you to deal damage."
+    },
+    "strategic": {
+      "accelMult": 0.9,
+      "hpRange": [200, 400],
+      "color": "#ffaa00",
+      "description": "Orbits you and keeps distance."
+    },
+    "healer": {
+      "accelMult": 1.1,
+      "hpRange": [300, 500],
+      "color": "#00ff88",
+      "description": "Runs away and regenerates HP."
+    }
+  }
+}
+

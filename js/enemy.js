@@ -1,57 +1,47 @@
-import { Bullet, LobbedProjectile } from "./bullet.js";
+import { Bullet, LobbedProjectile, hazards } from "./bullet.js";
 import { getSmartAim } from "./predict.js";
+import { gameData } from "./main.js";
 
 export class Enemy {
     constructor(x, y, aiType = 'aggressive', bulletType = 'normal') {
+        // Acessa a configuração específica da IA vinda do JSON
+        const config = gameData.enemies.aiTypes[aiType] || gameData.enemies.aiTypes['lost'];
+        
         this.x = x;
         this.y = y;
         this.radius = 25;
         this.dead = false;
 
-        this.maxHp = Math.floor(Math.random() * 401) + 100;
-        this.hp = this.maxHp;
-        
+        // Atributos baseados no JSON
         this.aiType = aiType;
         this.bulletType = bulletType;
+        this.color = config.color;
         
-        // Física de Inércia dos inimigos
+        // HP aleatório dentro do range definido no JSON
+        const [minHp, maxHp] = config.hpRange;
+        this.maxHp = Math.floor(Math.random() * (maxHp - minHp + 1)) + minHp;
+        this.hp = this.maxHp;
+        
+        // Física e Movimentação (Baseada no multiplicador da IA)
         this.velX = 0;
         this.velY = 0;
-        this.acceleration = 800;
+        this.acceleration = 800 * (config.accelMult || 1.0);
         this.friction = 0.85;
-        this.meleeCooldown = 0; // Cooldown de dano corpo-a-corpo
+        this.meleeCooldown = 0;
 
+        // Tiro
         this.bullets = [];
         this.target = null;
-
         this.shootCooldown = 0;
-        this.fireRate = 1.5;
+        this.fireRate = config.fireRate || 1.5;
+
+        // Estados de IA e Esquiva
         this.timeSinceLastDamage = 0;
         this.timeSinceLastShot = 0;
-
         this.randomMoveDir = { x: Math.random() - 0.5, y: Math.random() - 0.5 };
         this.randomMoveTimer = 0;
         this.dodgeVector = { x: 0, y: 0 };
         this.dodgeTimer = 0;
-
-        this.aplicarAtributosPorIA();
-    }
-
-    aplicarAtributosPorIA() {
-        switch (this.aiType) {
-            case 'sniper':
-                this.acceleration = 500;
-                this.fireRate = 2.5;
-                break;
-            case 'melee':
-                this.acceleration = 1400;
-                this.maxHp = 100;
-                this.hp = this.maxHp;
-                break;
-            case 'healer':
-                this.acceleration = 1000;
-                break;
-        }
     }
 
     takeDamage(amount) {
@@ -71,7 +61,7 @@ export class Enemy {
         if (this.dodgeTimer > 0) this.dodgeTimer -= dt;
         if (this.meleeCooldown > 0) this.meleeCooldown -= dt;
 
-        // Cura passiva
+        // Cura passiva (após 3s sem levar ou dar dano)
         if (this.timeSinceLastDamage > 3 && this.timeSinceLastShot > 3) {
             this.hp = Math.min(this.maxHp, this.hp + (this.maxHp * 0.10 * dt));
         }
@@ -107,7 +97,6 @@ export class Enemy {
                 alvoMaisProximo = outroInimigo;
             }
         }
-
         this.target = alvoMaisProximo;
     }
 
@@ -115,18 +104,16 @@ export class Enemy {
         let moveX = 0;
         let moveY = 0;
 
+        // Lógica de esquiva de projéteis
         if (this.dodgeTimer <= 0) {
             for (let b of allBullets) {
                 if (b.sender === this || b.owner === this) continue;
-
                 let distToBullet = Math.hypot(b.x - this.x, b.y - this.y);
                 if (distToBullet < 120) {
                     if (Math.random() < 0.75) {
                         this.dodgeVector = { x: -b.vy, y: b.vx }; 
-                        this.dodgeTimer = 0.5;
-                    } else {
-                        this.dodgeTimer = 0.5; 
                     }
+                    this.dodgeTimer = 0.5;
                     break;
                 }
             }
@@ -136,6 +123,7 @@ export class Enemy {
             moveX = this.dodgeVector.x;
             moveY = this.dodgeVector.y;
         } else {
+            // Lógica baseada no tipo de IA
             if (this.aiType === 'lost') {
                 this.randomMoveTimer -= dt;
                 if (this.randomMoveTimer <= 0) {
@@ -161,45 +149,29 @@ export class Enemy {
                 switch (this.aiType) {
                     case 'aggressive':
                     case 'melee':
-                        moveX = dirX;
-                        moveY = dirY;
+                        moveX = dirX; moveY = dirY;
                         break;
                     case 'sniper':
-                        if (distToTarget < 400) {
-                            moveX = -dirX;
-                            moveY = -dirY;
-                        } else if (distToTarget > 600) {
-                            moveX = dirX;
-                            moveY = dirY;
-                        }
+                        if (distToTarget < 400) { moveX = -dirX; moveY = -dirY; }
+                        else if (distToTarget > 600) { moveX = dirX; moveY = dirY; }
                         break;
                     case 'strategic':
-                        if (distToTarget < 200) {
-                            moveX = -dirX;
-                            moveY = -dirY;
-                        } else if (distToTarget > 300) {
-                            moveX = dirX;
-                            moveY = dirY;
-                        } else {
-                            moveX = -dirY; 
-                            moveY = dirX;
-                        }
+                        if (distToTarget < 200) { moveX = -dirX; moveY = -dirY; }
+                        else if (distToTarget > 300) { moveX = dirX; moveY = dirY; }
+                        else { moveX = -dirY; moveY = dirX; } // Orbita o alvo
                         break;
                 }
             }
         }
 
-        // Normalização do vetor de direção
         let length = Math.hypot(moveX, moveY);
         if (length > 0) {
-            moveX /= length;
-            moveY /= length;
+            moveX /= length; moveY /= length;
         }
 
         // Aplicação da Física de Inércia
         this.velX += moveX * this.acceleration * dt;
         this.velY += moveY * this.acceleration * dt;
-
         this.velX *= this.friction;
         this.velY *= this.friction;
 
@@ -217,31 +189,15 @@ export class Enemy {
         let baseDamage = 25;
         let targetVel = { x: this.target.velX || 0, y: this.target.velY || 0 };
 
-        let aim = getSmartAim(
-            { x: this.x, y: this.y },
-            { x: this.target.x, y: this.target.y },
-            targetVel,
-            bulletSpeed,
-            this.bulletType,
-            this.target.radius || 20
-        );
+        let aim = getSmartAim({ x: this.x, y: this.y }, { x: this.target.x, y: this.target.y }, targetVel, bulletSpeed, this.bulletType, this.target.radius || 20);
 
         if (!aim) return;
 
         const lobbedTypes = ['bomba', 'acido', 'quicador', 'cola'];
         if (lobbedTypes.includes(this.bulletType)) {
-            this.bullets.push(new LobbedProjectile(
-                this.x, this.y, 
-                aim.targetX, aim.targetY, 
-                this.bulletType, baseDamage
-            ));
+            this.bullets.push(new LobbedProjectile(this.x, this.y, aim.targetX, aim.targetY, this.bulletType, baseDamage));
         } else {
-            let newBullet = new Bullet(
-                this.x, this.y, 
-                aim.x, aim.y, 
-                bulletSpeed, baseDamage, 
-                'enemy', this.bulletType, this.target
-            );
+            let newBullet = new Bullet(this.x, this.y, aim.x, aim.y, bulletSpeed, baseDamage, 'enemy', this.bulletType, this.target);
             newBullet.sender = this;
             this.bullets.push(newBullet);
         }
@@ -254,16 +210,15 @@ export class Enemy {
         let drawX = this.x - camera.x;
         let drawY = this.y - camera.y;
 
-        for (let b of this.bullets) {
-            b.draw(ctx, camera, player); 
-        }
+        for (let b of this.bullets) b.draw(ctx, camera, player); 
 
-        ctx.fillStyle = this.getCorPorIA();
-        
+        // Corpo do Inimigo com cor vinda do JSON
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
         ctx.fill();
 
+        // Olho (indica direção do alvo)
         if (this.target) {
             let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
             ctx.fillStyle = "black";
@@ -272,22 +227,11 @@ export class Enemy {
             ctx.fill();
         }
 
+        // Barra de Vida
         let hpRatio = this.hp / this.maxHp;
         ctx.fillStyle = "red";
         ctx.fillRect(drawX - 20, drawY - 35, 40, 5);
         ctx.fillStyle = "lightgreen";
         ctx.fillRect(drawX - 20, drawY - 35, 40 * hpRatio, 5);
-    }
-
-    getCorPorIA() {
-        switch(this.aiType) {
-            case 'aggressive': return '#ff3333';
-            case 'sniper': return '#cc00ff';
-            case 'strategic': return '#ffaa00';
-            case 'melee': return '#880000';
-            case 'healer': return '#00ff88';
-            case 'lost': return '#888888';
-            default: return 'red';
-        }
     }
 }
