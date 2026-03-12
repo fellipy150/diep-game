@@ -102,7 +102,7 @@ export class Player {
         this.level++;
         this.xp -= this.xpNeeded;
         
-        // Progressão de XP baseada na fórmula: $xpNeeded = \lfloor xpNeeded \times 1.25 \rfloor$
+        // Progressão de XP baseada na fórmula
         this.xpNeeded = Math.floor(this.xpNeeded * 1.25);
 
         let choices = [];
@@ -121,7 +121,7 @@ export class Player {
                     description: 'Changes your primary weapon to ' + randomSpecial.toUpperCase(),
                     type: 'weapon'
                 });
-                // Adiciona 3 upgrades normais (que já possuem a propriedade 'description' no JSON)
+                // Adiciona 3 upgrades normais
                 choices.push(...shuffledBase.slice(0, 3));
             } else {
                 choices.push(...shuffledBase.slice(0, 4));
@@ -172,18 +172,45 @@ export class Player {
         let drawX = this.x - camera.x;
         let drawY = this.y - camera.y;
 
+        // Desenhar projéteis primeiro
         for (let b of this.bullets) b.draw(ctx, camera, { x: this.x, y: this.y });
 
-        ctx.fillStyle = "cyan";
-        ctx.beginPath();
-        ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
-        ctx.fill();
+        // 1. Brilho Externo (Aura)
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "cyan";
 
+        // 2. Anel Rotativo
+        ctx.strokeStyle = "cyan";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // O Date.now() cria a rotação contínua
+        ctx.arc(drawX, drawY, this.radius + 5, Date.now() / 200, (Date.now() / 200) + Math.PI * 1.5);
+        ctx.stroke();
+
+        // 3. Núcleo
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, this.radius - 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0; // Limpa o brilho para o resto
+
+        // 4. Indicador de Mira
+        if (input.aim.x !== 0 || input.aim.y !== 0) {
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.5)"; // Linha ciano semi-transparente
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(drawX, drawY);
+            ctx.lineTo(drawX + input.aim.x * 35, drawY + input.aim.y * 35);
+            ctx.stroke();
+        }
+
+        // Anel de Sinergias (Raio aumentado para 13 para não cruzar o anel rotativo)
         if (this.activeSynergies.length > 0) {
             ctx.strokeStyle = "rgba(255, 255, 0, 0.5)";
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(drawX, drawY, this.radius + 5, 0, Math.PI * 2);
+            ctx.arc(drawX, drawY, this.radius + 13, 0, Math.PI * 2);
             ctx.stroke();
         }
 

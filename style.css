@@ -14,7 +14,9 @@ canvas {
     height: 100vh;
 }
 
-/* Base comum para ambos os Joysticks */
+/* ==========================================
+   JOYSTICKS (CONTROLES TOUCH)
+   ========================================== */
 .joystick-base {
     position: fixed;
     bottom: 40px;
@@ -27,11 +29,15 @@ canvas {
     z-index: 10;
 }
 
-/* Posicionamento individual */
-#joystick-move { left: 40px; }
-#joystick-aim { right: 40px; border-color: rgba(255, 50, 50, 0.5); }
+#joystick-move { 
+    left: 40px; 
+}
 
-/* O botão móvel dentro do Joystick */
+#joystick-aim { 
+    right: 40px; 
+    border-color: rgba(255, 50, 50, 0.5); 
+}
+
 .stick {
     position: absolute;
     left: 38px; /* (120/2) - (40/2) - 2px da borda */
@@ -48,3 +54,34 @@ canvas {
     background: rgba(255, 50, 50, 0.7);
 }
 
+/* ==========================================
+   INTERFACE SYSTEM (GLASSMORPHISM)
+   ========================================== */
+#levelup-overlay {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* Suporte extra para Safari/iOS */
+    background: rgba(10, 10, 25, 0.85) !important;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+#levelup-overlay h1 {
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: #0ff;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+}
+
+#levelup-overlay button {
+    background: rgba(0, 255, 255, 0.05) !important;
+    border: 1px solid #0ff !important;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+#levelup-overlay button:active {
+    background: rgba(0, 255, 255, 0.3) !important;
+    transform: scale(0.95);
+}

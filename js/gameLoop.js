@@ -7,6 +7,10 @@ export let isPaused = false;
 export let isGameOver = false;
 const damageNumbers = [];
 
+// OTIMIZAÇÃO: Cache do Canvas e do Contexto na raiz do módulo
+const canvas = document.getElementById("game");
+const ctx = canvas ? canvas.getContext("2d") : null;
+
 export function startGameLoop() {
     player.onLevelUp = (choices) => { isPaused = true; mostrarMenuLevelUp(choices); };
     requestAnimationFrame(loop);
@@ -25,56 +29,126 @@ function loop(time) {
 function update(dt) {
     player.update(dt);
     gerenciarSpawns(dt);
+
+    // CORREÇÃO: Temporizador atrelado ao game loop (dt) para o player
+    if (player.efeitoColaTimer > 0) {
+        player.efeitoColaTimer -= dt;
+        if (player.efeitoColaTimer <= 0) player.speedMultiplicador = 1.0;
+    }
+
+    // OTIMIZAÇÃO: Cleanup in-place de damage numbers sem alocar novos arrays
     for (let i = damageNumbers.length - 1; i >= 0; i--) {
         let n = damageNumbers[i];
-        n.y -= 40 * dt; n.life -= dt;
+        n.y -= 40 * dt; 
+        n.life -= dt;
         if (n.life <= 0) damageNumbers.splice(i, 1);
     }
-    let allBullets = [...player.bullets, ...enemies.flatMap(e => e.bullets)];
+
     for (let i = enemies.length - 1; i >= 0; i--) {
         let e = enemies[i];
-        e.dead ? (enemies.splice(i, 1), player.gainXp(40)) : e.update(dt, player, enemies, allBullets);
+        
+        // CORREÇÃO: Temporizador atrelado ao game loop (dt) para inimigos
+        if (e.efeitoColaTimer > 0) {
+            e.efeitoColaTimer -= dt;
+            if (e.efeitoColaTimer <= 0) e.speedMultiplicador = 1.0;
+        }
+
+        if (e.dead) {
+            enemies.splice(i, 1);
+            player.gainXp(40);
+        } else {
+            // OTIMIZAÇÃO: Removido 'allBullets' para evitar criação de array via flatMap no loop
+            e.update(dt, player, enemies);
+        }
     }
+
     for (let i = hazards.length - 1; i >= 0; i--) {
         hazards[i].update(dt);
         if (hazards[i].dead) hazards.splice(i, 1);
     }
+
     processarColisoes();
+    
+    // OTIMIZAÇÃO: Limpeza de arrays in-place substituindo o .filter()
+    limparListaInPlace(player.bullets);
+    for (let e of enemies) limparListaInPlace(e.bullets);
+
     if (player.hp <= 0) isGameOver = true;
 }
 
-const verificarColisao = (o1, o2) => Math.hypot(o1.x - o2.x, o1.y - o2.y) < (o1.radius + o2.radius);
-const criarNumeroDano = (x, y, val, color) => damageNumbers.push({ x, y: y - 20, val: Math.floor(val), life: 1.0, color });
-const aplicarEfeitoDeSolo = (entidade, tipo) => {
-    if (tipo === 'cola') { entidade.speedMultiplicador = 0.3; setTimeout(() => entidade.speedMultiplicador = 1.0, 2000); }
+// OTIMIZAÇÃO: Helper para mutar arrays sem gerar Garbage Collection
+function limparListaInPlace(lista) {
+    if (!lista) return;
+    for (let i = lista.length - 1; i >= 0; i--) {
+        if (lista[i].dead) lista.splice(i, 1);
+    }
+}
+
+// OTIMIZAÇÃO: Verificação rápida usando Distância ao Quadrado (Squared Distance)
+const verificarColisao = (o1, o2) => {
+    let dx = o1.x - o2.x;
+    let dy = o1.y - o2.y;
+    let rSum = o1.radius + o2.radius;
+    return (dx * dx + dy * dy) < (rSum * rSum);
 };
 
-function resolverSobreposicao(o1, o2, dist, minDist) {
-    let overlap = (minDist - dist) / 2, nx = (o1.x - o2.x) / dist || 1, ny = (o1.y - o2.y) / dist || 0;
+const criarNumeroDano = (x, y, val, color) => damageNumbers.push({ x, y: y - 20, val: Math.floor(val), life: 1.0, color });
+
+// CORREÇÃO: Sem setTimeout. Configuramos apenas o multiplicador e a vida do temporizador.
+const aplicarEfeitoDeSolo = (entidade, tipo) => {
+    if (tipo === 'cola') { 
+        entidade.speedMultiplicador = 0.3; 
+        entidade.efeitoColaTimer = 2.0; 
+    }
+};
+
+function resolverSobreposicao(o1, o2, dx, dy, distSq, minDist) {
+    let dist = Math.sqrt(distSq);
+    if (dist === 0) return;
+    let overlap = (minDist - dist) / 2;
+    let nx = dx / dist;
+    let ny = dy / dist;
+    
+    // Ajeita as posições empurrando nas direções opostas
     o1.x += nx * overlap; o1.y += ny * overlap;
     o2.x -= nx * overlap; o2.y -= ny * overlap;
 }
 
 function processarColisoes() {
+    // Colisões Inimigo-Player e Inimigo-Inimigo otimizadas
     for (let i = 0; i < enemies.length; i++) {
         let e1 = enemies[i];
         if (e1.dead) continue;
-        let distP = Math.hypot(player.x - e1.x, player.y - e1.y), minDistP = player.radius + e1.radius;
-        if (distP < minDistP) {
-            resolverSobreposicao(player, e1, distP, minDistP);
+        
+        let dxP = player.x - e1.x;
+        let dyP = player.y - e1.y;
+        let distSqP = dxP * dxP + dyP * dyP;
+        let minDistP = player.radius + e1.radius;
+        
+        if (distSqP < minDistP * minDistP) {
+            resolverSobreposicao(player, e1, dxP, dyP, distSqP, minDistP);
             if (e1.aiType === 'melee' && e1.meleeCooldown <= 0) {
                 player.hp -= 20; e1.meleeCooldown = 1.0;
                 aplicarEfeitoDeSolo(player, 'impact');
                 camera.shake = 10; criarNumeroDano(player.x, player.y, 20, "red");
             }
         }
+        
         for (let j = i + 1; j < enemies.length; j++) {
             let e2 = enemies[j];
             if (e2.dead) continue;
-            let distE = Math.hypot(e1.x - e2.x, e1.y - e2.y), minDistE = e1.radius + e2.radius;
-            if (distE < minDistE) resolverSobreposicao(e1, e2, distE, minDistE);
+            let dxE = e1.x - e2.x;
+            let dyE = e1.y - e2.y;
+            let distSqE = dxE * dxE + dyE * dyE;
+            let minDistE = e1.radius + e2.radius;
+            
+            if (distSqE < minDistE * minDistE) {
+                resolverSobreposicao(e1, e2, dxE, dyE, distSqE, minDistE);
+            }
         }
     }
+    
+    // As verificações de balas e hazards agora utilizam a nova verificarColisao (Squared Distance)
     for (let b of player.bullets) {
         if (b.dead) continue;
         for (let e of enemies) {
@@ -85,6 +159,7 @@ function processarColisoes() {
             }
         }
     }
+    
     for (let atirador of enemies) {
         for (let b of atirador.bullets) {
             if (b.dead || !b.radius) continue;
@@ -101,6 +176,7 @@ function processarColisoes() {
             }
         }
     }
+    
     for (let h of hazards) {
         if (!h.dead && h.canDamage()) {
             const hObj = { x: h.x, y: h.y, radius: h.radius };
@@ -116,17 +192,22 @@ function processarColisoes() {
             }
         }
     }
-    player.bullets = player.bullets.filter(b => !b.dead);
-    enemies.forEach(e => e.bullets = e.bullets.filter(b => !b.dead));
 }
 
+// CORREÇÃO: Uso de variável ctx cacheadas em vez de buscar o contexto todo frame
 function desenharGameOver() {
-    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    if (!ctx) return;
     const cx = canvas.width / 2, cy = canvas.height / 2;
-    ctx.fillStyle = "rgba(0,0,0,0.7)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "red"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(0,0,0,0.7)"; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = "red"; 
+    ctx.font = "bold 40px sans-serif"; 
+    ctx.textAlign = "center";
     ctx.fillText("GAME OVER", cx, cy - 20);
-    ctx.fillStyle = "white"; ctx.font = "20px sans-serif";
+    
+    ctx.fillStyle = "white"; 
+    ctx.font = "20px sans-serif";
     ctx.fillText(`You reached Level ${player.level}`, cx, cy + 30);
     ctx.fillText("Reload the page to try again", cx, cy + 70);
 }
@@ -139,10 +220,12 @@ function mostrarMenuLevelUp(choices) {
         alignItems: 'center', justifyContent: 'center', zIndex: '100', color: 'white', fontFamily: 'sans-serif'
     });
     overlay.addEventListener('pointerdown', (e) => { if (e.target === overlay) { e.stopPropagation(); e.preventDefault(); } });
+    
     const titulo = document.createElement('h1');
     titulo.innerText = `Level ${player.level}! Choose an Upgrade:`;
     titulo.style.marginBottom = '20px';
     overlay.appendChild(titulo);
+    
     choices.forEach(upgrade => {
         const btn = document.createElement('button');
         Object.assign(btn.style, {
