@@ -227,4 +227,12 @@ export class Hazard {
  * Nota: Como é um export constante, será preenchido assim que o configManager
  * completar a carga inicial do objeto gameData.
  */
-export const SPECIAL_BULLETS_POOL = Object.keys(gameData.bullets || {}).filter(k => k !== 'normal');
+
+
+
+export function getSpecialBulletsPool() {
+    if (!gameData || !gameData.bullets) return [];
+    // Retorna todas as chaves exceto 'normal'
+    return Object.keys(gameData.bullets).filter(key => key !== 'normal');
+}
+

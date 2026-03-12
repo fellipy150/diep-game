@@ -1,5 +1,11 @@
 {
   "aiTypes": {
+    "lost": {
+      "accelMult": 0.6,
+      "hpRange": [80, 120],
+      "color": "#888888",
+      "description": "Moves randomly and aims poorly."
+    },
     "aggressive": {
       "accelMult": 1.0,
       "hpRange": [150, 300],
@@ -16,19 +22,19 @@
       "accelMult": 1.5,
       "hpRange": [80, 150],
       "color": "#880000",
-      "description": "Fast but must touch you to deal damage."
+      "description": "Fast but must touch you."
     },
     "strategic": {
       "accelMult": 0.9,
       "hpRange": [200, 400],
       "color": "#ffaa00",
-      "description": "Orbits you and keeps distance."
+      "description": "Orbits you."
     },
     "healer": {
       "accelMult": 1.1,
       "hpRange": [300, 500],
       "color": "#00ff88",
-      "description": "Runs away and regenerates HP."
+      "description": "Runs away and heals."
     }
   }
 }
