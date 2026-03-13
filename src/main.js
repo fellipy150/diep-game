@@ -1,11 +1,11 @@
-import { startGameLoop } from "./gameLoop.js";
-import { Player } from "./player.js";
-import { Enemy } from "./enemy.js";
-import { Input } from "./input.js";
-import { getSpecialBulletsPool } from "./bullet.js"; 
-import { loadAllConfigs } from "./configManager.js";
+import { startGameLoop } from "./game/gameLoop.js";
+import { Player } from "./entities/player/Player.js";
+import { Enemy } from "./entities/enemy/Enemy.js";
+import { Input } from "./core/input.js";
+import { getSpecialBulletsPool } from "./entities/projectiles/Projectile.js"; 
+import { loadAllConfigs, gameData } from "./config/configManager.js";
 // CORREÇÃO: Importar a câmera atualizada diretamente do renderer!
-import { camera } from "./renderer.js"; 
+import { camera } from "./game/renderer.js"; 
 
 // 1. Configuração do Canvas
 export const canvas = document.getElementById("game");
@@ -21,7 +21,6 @@ export const enemies = [];
 export const MAX_ENEMIES = 60; // Trava de segurança para salvar o FPS
 
 // 2. Variáveis de Estado
-export let gameData = {};
 export let input;
 export let player;
 let spawnTimer = 0;
@@ -29,21 +28,25 @@ let spawnTimer = 0;
 /**
  * Ponto de Entrada (Boot)
  */
+
 async function start() {
     try {
-        console.log("Carregando recursos...");
-        const data = await loadAllConfigs();
+        console.log("Iniciando carregamento de recursos...");
         
-        if (!data) throw new Error("Falha Crítica: JSONs de configuração vazios.");
+        // APENAS chame a função. 
+        // O configManager já vai preencher o objeto gameData internamente.
+        await loadAllConfigs(); 
+        
+        console.log("Configurações aplicadas:", gameData); // Já estará preenchido!
 
-        gameData = data;
-        console.log("Configurações aplicadas com sucesso!");
-
+        // Inicializa o restante do jogo
         setupGame(); 
+
     } catch (err) {
         console.error("Erro ao iniciar o jogo:", err);
     }
 }
+
 
 /**
  * Instancia entidades e liga o motor

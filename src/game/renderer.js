@@ -1,4 +1,4 @@
-import { ctx, canvas, GAME_WIDTH, GAME_HEIGHT } from "./main.js"; // Removida a 'camera' da importação
+import { ctx, canvas, GAME_WIDTH, GAME_HEIGHT } from "../main.js"; // Removida a 'camera' da importação
 
 // Estado global da câmera com suporte a shake
 export const camera = { x: 0, y: 0, shake: 0 };

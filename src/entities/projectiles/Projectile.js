@@ -1,4 +1,4 @@
-import { gameData } from "./configManager.js";
+import { gameData } from "../../config/configManager.js";
 
 // Lista global para processamento de perigos (Fogo, ácido, etc.)
 export const hazards = [];

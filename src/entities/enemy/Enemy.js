@@ -1,6 +1,6 @@
-import { Bullet, LobbedProjectile } from "./bullet.js";
-import { getSmartAim } from "./predict.js";
-import { gameData } from "./configManager.js";
+import { Bullet, LobbedProjectile } from "../projectiles/Projectile.js";
+import { getSmartAim } from "../../core/mathUtils.js";
+import { gameData } from "../../config/configManager.js";
 
 // ==========================================
 // ESTRATÉGIAS DE IA (Strategy Pattern)

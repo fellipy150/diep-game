@@ -1,6 +1,6 @@
-import { input } from "./main.js";
-import { gameData } from "./configManager.js";
-import { Bullet, LobbedProjectile, getSpecialBulletsPool } from "./bullet.js";
+import { input } from "../../main.js";
+import { gameData } from "../../config/configManager.js";
+import { Bullet, LobbedProjectile, getSpecialBulletsPool } from "../projectiles/Projectile.js";
 
 export class Player {
     constructor(x, y) {

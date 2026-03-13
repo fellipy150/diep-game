@@ -1,6 +1,6 @@
-import { player, enemies, gerenciarSpawns } from "./main.js";
+import { player, enemies, gerenciarSpawns } from "../main.js";
 import { updateCamera, renderGame, camera } from "./renderer.js";
-import { hazards } from "./bullet.js";
+import { hazards } from "../entities/projectiles/Projectile.js";
 
 let lastTime = 0;
 export let isPaused = false;
