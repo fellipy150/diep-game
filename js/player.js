@@ -4,77 +4,113 @@ import { Bullet, LobbedProjectile, getSpecialBulletsPool } from "./bullet.js";
 
 export class Player {
     constructor(x, y) {
-        // Posição e Físicas
-        this.x = x;
+        this.x = x; 
         this.y = y;
-        this.velX = 0;
+        this.velX = 0; 
         this.velY = 0;
         this.radius = 20;
-        this.acceleration = 1400;
+        
+        // Físicas base
+        this.baseAcceleration = 1400;
         this.friction = 0.88;
         
         // Status Base
         this.maxHp = 200;
         this.hp = this.maxHp;
-        this.speed = 1.0; 
-        this.speedMultiplicador = 1.0;
+        this.baseSpeed = 1.0; 
         this.damage = 40;
         this.fireRate = 0.6; 
         this.bulletSpeed = 500;
         this.multiShot = 1;
         this.currentBulletType = 'normal';
 
-        // Sistema de Upgrades e Sinergias (Persistência de Dados)
+        // SISTEMA DE STATUS (Buffs / Debuffs)
+        this.activeEffects = [];
+        this.currentSpeedMult = 1.0; // Recalculado a cada frame
+
+        // Progressão e Upgrades
         this.upgradeCounts = {}; 
         this.activeSynergies = []; 
         
-        // Controle de disparo
         this.shootTimer = 0;
         this.bullets = [];
 
-        // Sistema de Progressão
         this.level = 1;
         this.xp = 0;
         this.xpNeeded = 100;
         this.onLevelUp = null;
+
+        // Visual (Respeita o pause do jogo)
+        this.visualRotation = 0;
+    }
+
+    // Método central para receber efeitos do mapa ou de inimigos
+    addStatusEffect(type, duration) {
+        let existing = this.activeEffects.find(e => e.type === type);
+        if (existing) {
+            existing.duration = Math.max(existing.duration, duration); // Renova a duração
+        } else {
+            this.activeEffects.push({ type, duration });
+        }
     }
 
     update(dt) {
-        // 1. Movimento com Inércia
-        let acc = this.acceleration * this.speed * this.speedMultiplicador;
-        this.velX += input.move.x * acc * dt;
-        this.velY += input.move.y * acc * dt;
+        // 1. Processar Status Effects
+        this.currentSpeedMult = 1.0;
+        for (let i = this.activeEffects.length - 1; i >= 0; i--) {
+            let effect = this.activeEffects[i];
+            effect.duration -= dt;
+            
+            // Aplica as regras do debuff/buff
+            if (effect.type === 'glue') this.currentSpeedMult *= 0.3;
+            // Exemplo para o futuro: if (effect.type === 'poison') this.hp -= 5 * dt;
+
+            if (effect.duration <= 0) this.activeEffects.splice(i, 1);
+        }
+
+        // 2. Movimento Seguro (Prevenindo Exploit de Velocidade Diagonal)
+        let dirX = input.move.x;
+        let dirY = input.move.y;
+        let magSq = dirX * dirX + dirY * dirY;
+        
+        if (magSq > 1) {
+            let mag = Math.sqrt(magSq);
+            dirX /= mag; 
+            dirY /= mag;
+        }
+
+        let acc = this.baseAcceleration * this.baseSpeed * this.currentSpeedMult;
+        this.velX += dirX * acc * dt;
+        this.velY += dirY * acc * dt;
         this.velX *= this.friction;
         this.velY *= this.friction;
         this.x += this.velX * dt;
         this.y += this.velY * dt;
 
-        // 2. Cooldown de Tiro Dinâmico
+        // 3. Atualizar Visual (Respeitando o Pause)
+        this.visualRotation += dt * 5;
+
+        // 4. Combate
         const config = gameData.bullets[this.currentBulletType] || gameData.bullets['normal'];
         let effectiveFireRate = this.fireRate * (config.fireRateMult || 1);
 
         if (this.shootTimer > 0) this.shootTimer -= dt;
 
-        // 3. Disparo Automático
         if (input.isShooting && this.shootTimer <= 0) {
-            this.shoot();
+            this.shoot(config);
             this.shootTimer = effectiveFireRate;
         }
 
-        // 4. Atualizar Balas
+        // 5. Atualizar Balas IN-PLACE
         for (let i = this.bullets.length - 1; i >= 0; i--) {
-            this.bullets[i].update(dt, { x: this.x, y: this.y });
+            this.bullets[i].update(dt);
             if (this.bullets[i].dead) this.bullets.splice(i, 1);
         }
     }
 
-    shoot() {
-        const config = gameData.bullets[this.currentBulletType] || gameData.bullets['normal'];
+    shoot(config) {
         let baseAngle = Math.atan2(input.aim.y, input.aim.x);
-        
-        let shotCount = 1;
-        if (config.multishotScale === 0) shotCount = 1;
-        else shotCount = Math.max(1, Math.round(this.multiShot * config.multishotScale));
+        let shotCount = config.multishotScale === 0 ? 1 : Math.max(1, Math.round(this.multiShot * config.multishotScale));
 
         let spread = (15 * Math.PI / 180);
         let startAngle = baseAngle - (spread * (shotCount - 1)) / 2;
@@ -101,18 +137,14 @@ export class Player {
     levelUp() {
         this.level++;
         this.xp -= this.xpNeeded;
-        
-        // Progressão de XP baseada na fórmula
         this.xpNeeded = Math.floor(this.xpNeeded * 1.25);
 
         let choices = [];
         const baseUpgrades = gameData.upgrades.statUpgrades;
         let shuffledBase = [...baseUpgrades].sort(() => 0.5 - Math.random());
 
-        // 25% de chance de aparecer uma Munição Especial
         if (Math.random() <= 0.25) {
             const pool = getSpecialBulletsPool();
-            
             if (pool.length > 0) {
                 let randomSpecial = pool[Math.floor(Math.random() * pool.length)];
                 choices.push({
@@ -121,7 +153,6 @@ export class Player {
                     description: 'Changes your primary weapon to ' + randomSpecial.toUpperCase(),
                     type: 'weapon'
                 });
-                // Adiciona 3 upgrades normais
                 choices.push(...shuffledBase.slice(0, 3));
             } else {
                 choices.push(...shuffledBase.slice(0, 4));
@@ -147,7 +178,7 @@ export class Player {
             if (upgrade.type === 'multiply') this[upgrade.stat] *= upgrade.value;
             else if (upgrade.type === 'add') this[upgrade.stat] += upgrade.value;
             
-            if (upgradeId === 'maxHp') this.hp = this.maxHp;
+            if (upgradeId === 'maxHp') this.hp += upgrade.value; 
         }
 
         this.checkSynergies();
@@ -172,32 +203,36 @@ export class Player {
         let drawX = this.x - camera.x;
         let drawY = this.y - camera.y;
 
-        // Desenhar projéteis primeiro
+        // 1. Projéteis
         for (let b of this.bullets) b.draw(ctx, camera, { x: this.x, y: this.y });
 
-        // 1. Brilho Externo (Aura)
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = "cyan";
+        // 2. Brilho Ciano (Substituindo shadowBlur por Gradiente GPU-friendly)
+        let grad = ctx.createRadialGradient(drawX, drawY, this.radius - 10, drawX, drawY, this.radius + 15);
+        grad.addColorStop(0, "transparent");
+        grad.addColorStop(0.5, "cyan");
+        grad.addColorStop(1, "transparent");
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, this.radius + 15, 0, Math.PI * 2);
+        ctx.fill();
 
-        // 2. Anel Rotativo
+        // 3. Anel Rotativo (Sincronizado com o dt)
         ctx.strokeStyle = "cyan";
         ctx.lineWidth = 2;
         ctx.beginPath();
-        // O Date.now() cria a rotação contínua
-        ctx.arc(drawX, drawY, this.radius + 5, Date.now() / 200, (Date.now() / 200) + Math.PI * 1.5);
+        ctx.arc(drawX, drawY, this.radius + 5, this.visualRotation, this.visualRotation + Math.PI * 1.5);
         ctx.stroke();
 
-        // 3. Núcleo
+        // 4. Núcleo do Jogador
         ctx.fillStyle = "white";
         ctx.beginPath();
         ctx.arc(drawX, drawY, this.radius - 5, 0, Math.PI * 2);
         ctx.fill();
-        
-        ctx.shadowBlur = 0; // Limpa o brilho para o resto
 
-        // 4. Indicador de Mira
+        // 5. Indicador de Mira
         if (input.aim.x !== 0 || input.aim.y !== 0) {
-            ctx.strokeStyle = "rgba(0, 255, 255, 0.5)"; // Linha ciano semi-transparente
+            ctx.strokeStyle = "rgba(0, 255, 255, 0.5)"; 
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(drawX, drawY);
@@ -205,7 +240,7 @@ export class Player {
             ctx.stroke();
         }
 
-        // Anel de Sinergias (Raio aumentado para 13 para não cruzar o anel rotativo)
+        // 6. Anel de Sinergias Ativas
         if (this.activeSynergies.length > 0) {
             ctx.strokeStyle = "rgba(255, 255, 0, 0.5)";
             ctx.lineWidth = 3;
