@@ -16,6 +16,12 @@ export function desenharGameOver() {
     ctx.fillText("Recarregue a página para tentar novamente", cx, cy + 70);
 }
 export function mostrarMenuLevelUp(choices) {
+    console.log("🕵️ [DEBUG 5] Menu abriu recebendo:", choices);
+    if (!choices || choices.length === 0) {
+        console.error("❌ O menu recebeu uma lista vazia de escolhas! Abortando renderização.");
+        gameState.isPaused = false;
+        return;
+    }
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
         position: 'fixed',

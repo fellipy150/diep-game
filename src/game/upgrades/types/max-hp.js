@@ -5,7 +5,7 @@ export const maxHpUpgrade = {
     type: 'stat',
     apply: (player) => {
         player.maxHp += 50;
-        player.hp = player.maxHp; // Cura completa
+        player.hp = player.maxHp;
         console.log("❤️ Vida expandida e recuperada!");
     }
 };

@@ -4,11 +4,15 @@ import { mostrarMenuLevelUp, desenharGameOver } from "./gameUi.js";
 import { EnemySpawner } from "./enemySpawner.js";
 import { updateCamera, renderGame } from "./renderer.js";
 import { Player } from "../entities/player/index.js";
+import { UpgradeManager } from "./upgrades/upgradeManager.js";
 let lastTime = 0;
 export function startGameLoop() {
     gameState.player = new Player(gameState.canvas.width / 2, gameState.canvas.height / 2);
-    gameState.player.onLevelUp = (choices) => {
+    gameState.player.onLevelUp = () => {
+        console.log("🕵️ [DEBUG 3] Player avisou que subiu de nível!");
         gameState.isPaused = true;
+        const choices = UpgradeManager.getRandomChoices(4);
+        console.log("🕵️ [DEBUG 4] Enviando escolhas para o Menu:", choices);
         mostrarMenuLevelUp(choices);
     };
     requestAnimationFrame(loop);
@@ -44,15 +48,15 @@ function update(dt) {
         n.life -= dt;
         if (n.life <= 0) damageNumbers.splice(i, 1);
     }
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        let e = enemies[i];
-        if (e.dead) {
-            enemies.splice(i, 1);
-            player.gainXp(40);
-        } else {
-            e.update(dt, player, enemies, hazards);
-        }
+for (let i = enemies.length - 1; i >= 0; i--) {
+    let e = enemies[i];
+    if (e.dead) {
+        enemies.splice(i, 1);
+        player.gainXp(40);
+    } else {
+        e.update(dt, player, enemies, hazards);
     }
+}
     for (let i = hazards.length - 1; i >= 0; i--) {
         hazards[i].update(dt);
         if (hazards[i].dead) hazards.splice(i, 1);
