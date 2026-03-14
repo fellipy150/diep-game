@@ -1,14 +1,11 @@
-import { enemyConfigs } from '../entities/enemy/configs/index.js';
 import { bulletConfigs } from '../entities/projectiles/configs/index.js';
-
 export const gameData = {
-    enemies: enemyConfigs,
-    bullets: bulletConfigs || {},
-    upgrades: {},
-    synergies: {}
+    bullets: bulletConfigs,
+    enemies: {},
+    upgrades: { statUpgrades: [] },
+    synergies: { synergies: [] }
 };
-
-export const loadAllConfigs = () => {
-    console.log("🚀 Sistema Modular de Maestros Carregado!");
+export async function loadAllConfigs() {
+    console.log("📦 Configurações estáticas carregadas!");
     return Promise.resolve(gameData);
-};
+}

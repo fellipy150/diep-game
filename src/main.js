@@ -1,133 +1,53 @@
-import { startGameLoop } from "./game/gameLoop.js";
-import { Player } from "./entities/player/Player.js";
-import { Enemy } from "./entities/enemy/Enemy.js";
-import { Input } from "./core/input.js";
-import { getSpecialBulletsPool } from "./entities/projectiles/Projectile.js"; 
-import { loadAllConfigs, gameData } from "./config/configManager.js";
-// CORREÇÃO: Importar a câmera atualizada diretamente do renderer!
-import { camera } from "./game/renderer.js"; 
-
-// 1. Configuração do Canvas
-export const canvas = document.getElementById("game");
-export const ctx = canvas.getContext("2d");
-
-// Resolução do jogo
-export const GAME_WIDTH = 720; 
-export const GAME_HEIGHT = 1280;
-canvas.width = GAME_WIDTH;
-canvas.height = GAME_HEIGHT;
-
-export const enemies = [];
-export const MAX_ENEMIES = 60; // Trava de segurança para salvar o FPS
-
-// 2. Variáveis de Estado
-export let input;
-export let player;
-let spawnTimer = 0;
+// 1. Importações com caminhos relativos corrigidos (já estamos dentro da pasta 'src')
+import { loadAllConfigs } from './config/configManager.js';
+import { initEnemyTypes } from './entities/enemy/types/typeLoader.js';
+import { initUpgrades } from './game/upgrades/upgradeLoader.js';
+import { startGameLoop } from './game/gameLoop.js';
 
 /**
- * Ponto de Entrada (Boot)
+ * FUNÇÃO DE BOOT (A inicialização do Motor)
+ * Prepara o terreno antes de liberar o loop do jogo.
  */
-
-async function start() {
+async function bootstrap() {
     try {
-        console.log("Iniciando carregamento de recursos...");
+        console.group("🚀 Iniciando Boot do Jogo");
         
-        // APENAS chame a função. 
-        // O configManager já vai preencher o objeto gameData internamente.
-        await loadAllConfigs(); 
-        
-        console.log("Configurações aplicadas:", gameData); // Já estará preenchido!
+        // 1. Configura o Canvas globalmente
+        const canvas = document.getElementById('game');
+        if (canvas) {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Atualiza o tamanho se o jogador redimensionar a janela
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        } else {
+            console.warn("⚠️ Canvas com ID 'game' não encontrado no HTML!");
+        }
 
-        // Inicializa o restante do jogo
-        setupGame(); 
+        console.log("📦 Carregando Configurações, Inimigos e Upgrades...");
+
+        // 2. Carrega todos os módulos e dados em paralelo (Alta Performance)
+        // O jogo SÓ avança para a próxima linha quando tudo isso terminar
+        await Promise.all([
+            loadAllConfigs(),
+            initEnemyTypes(),
+            initUpgrades()
+        ]);
+
+        console.log("✅ Boot concluído com sucesso!");
+        console.groupEnd();
+
+        // 3. Passa o controle total para o Game Loop
+        startGameLoop();
 
     } catch (err) {
-        console.error("Erro ao iniciar o jogo:", err);
+        console.error("❌ Falha Crítica no Boot:", err);
+        console.groupEnd();
     }
 }
 
-
-/**
- * Instancia entidades e liga o motor
- */
-function setupGame() {
-    input = new Input();
-    player = new Player(500, 500);
-
-    // Spawns iniciais
-    spawnEnemy(); 
-    spawnEnemy(); 
-    spawnEnemy();
-
-    startGameLoop();
-}
-
-start();
-
-// ==========================================
-// SISTEMA DE SPAWN
-// ==========================================
-
-export function gerenciarSpawns(dt) {
-    if (!player) return; 
-    
-    // CORREÇÃO: Cap de entidades para evitar a morte da CPU
-    if (enemies.length >= MAX_ENEMIES) return;
-    
-    spawnTimer -= dt;
-    if (spawnTimer <= 0) {
-        spawnEnemy();
-        // Nível 1: 2.5s | Nível 20+: 0.5s
-        spawnTimer = Math.max(0.5, 2.5 - (player.level * 0.1));
-    }
-}
-
-function spawnEnemy() {
-    const margin = 100;
-    let spawnX, spawnY;
-    const edge = Math.floor(Math.random() * 4);
-
-    // Agora usa a câmera real importada do renderer.js
-    if (edge === 0) { spawnX = camera.x + (Math.random() * GAME_WIDTH); spawnY = camera.y - margin; }
-    else if (edge === 1) { spawnX = camera.x + (Math.random() * GAME_WIDTH); spawnY = camera.y + GAME_HEIGHT + margin; }
-    else if (edge === 2) { spawnX = camera.x - margin; spawnY = camera.y + (Math.random() * GAME_HEIGHT); }
-    else { spawnX = camera.x + GAME_WIDTH + margin; spawnY = camera.y + (Math.random() * GAME_HEIGHT); }
-
-    // --- SISTEMA DE DIFICULDADE DINÂMICA ---
-    const maxDifficultyLevel = 20; 
-    const progression = Math.min(1, (player.level - 1) / (maxDifficultyLevel - 1));
-
-    // 1. Sorteio de IA Dinâmico (Lido direto do JSON!)
-    const aiTypes = Object.keys(gameData.enemies.aiTypes);
-    const normalAiType = 'lost';
-    let selectedAI;
-    
-    const initialNormalAiProb = 0.9;
-    const finalNormalAiProb = 1 / aiTypes.length;
-    const currentNormalAiProb = initialNormalAiProb - (initialNormalAiProb - finalNormalAiProb) * progression;
-
-    if (Math.random() < currentNormalAiProb) {
-        selectedAI = normalAiType;
-    } else {
-        const harderAIs = aiTypes.filter(type => type !== normalAiType);
-        selectedAI = harderAIs[Math.floor(Math.random() * harderAIs.length)];
-    }
-
-    // 2. Sorteio de Balas
-    const pool = getSpecialBulletsPool();
-    let selectedBullet = 'normal';
-    
-    const totalBulletTypes = pool.length + 1; 
-    const initialNormalBulletProb = 0.9;
-    const finalNormalBulletProb = 1 / totalBulletTypes;
-    const currentNormalBulletProb = initialNormalBulletProb - (initialNormalBulletProb - finalNormalBulletProb) * progression;
-
-    if (Math.random() < currentNormalBulletProb || pool.length === 0) {
-        selectedBullet = 'normal';
-    } else {
-        selectedBullet = pool[Math.floor(Math.random() * pool.length)];
-    }
-
-    enemies.push(new Enemy(spawnX, spawnY, selectedAI, selectedBullet));
-}
+// 🚀 DISPARA O MOTOR DO JOGO
+bootstrap();

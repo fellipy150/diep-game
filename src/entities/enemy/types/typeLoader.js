@@ -1,34 +1,54 @@
-// Importação dos tipos (seus arquivos de Config + Brain unificados)
-import { Kamikaze } from './Kamikaze.js';
-import { Sniper } from './Sniper.js';
-import { Grunt } from './Grunt.js'; // Inimigo padrão/base
+// 1. O Vite encontra todos os arquivos .js nesta pasta
+const modules = import.meta.glob('./*.js');
 
-// O Registro (Dicionário de tipos)
-const enemyRegistry = {
-    kamikaze: Kamikaze,
-    sniper: Sniper,
-    grunt: Grunt
-};
+// 2. CORREÇÃO: O registro precisa estar aqui fora, no escopo global do arquivo
+const enemyRegistry = {};
 
 /**
- * Retorna o objeto de tipo (stats + think) baseado no nome.
- * @param {string} typeName 
- * @returns {Object} O Maestro do inimigo
+ * Inicializa o carregamento dos DNAs
  */
-export const getType = (typeName) => {
-    // Normaliza para letras minúsculas para evitar erros de case-sensitive
-    const name = typeName?.toLowerCase();
-    
-    if (enemyRegistry[name]) {
-        return enemyRegistry[name];
+export async function initEnemyTypes() {
+    const loadPromises = [];
+
+    console.log("🔍 Vasculhando arquivos de inimigos...");
+
+    for (const path in modules) {
+        // Ignora o próprio carregador e o index para não entrar em loop
+        if (path.includes('typeLoader.js') || path.includes('index.js')) continue;
+
+        const promise = modules[path]().then(module => {
+            // Limpa o nome do arquivo para usar como chave (ex: './cannon-fodder.js' -> 'cannon-fodder')
+            const fileName = path.split('/').pop().replace('.js', '');
+            const typeName = fileName.toLowerCase();
+
+            // Pega a primeira exportação do arquivo (ex: export const CannonFodder = ...)
+            const exportKey = Object.keys(module)[0];
+            
+            if (exportKey) {
+                // Salva no registro global do arquivo
+                enemyRegistry[typeName] = module[exportKey];
+                console.log(`✅ Inimigo registrado: [${typeName}]`);
+            }
+        });
+
+        loadPromises.push(promise);
     }
 
-    // Fallback de segurança para não quebrar o jogo se o nome estiver errado
-    console.warn(`Enemy type "${typeName}" not found. Using "grunt" as fallback.`);
-    return enemyRegistry.grunt;
+    await Promise.all(loadPromises);
+    
+    const count = Object.keys(enemyRegistry).length;
+    console.log(`🎮 Sistema de Tipos pronto! ${count} inimigos carregados.`);
+}
+
+/**
+ * Busca o DNA do inimigo pelo nome (usado pelo Spawner e Enemy)
+ */
+export const getType = (name) => {
+    const key = name?.toLowerCase();
+    return enemyRegistry[key] || null;
 };
 
 /**
- * Retorna uma lista de todos os tipos disponíveis (útil para o spawn aleatório)
+ * Retorna todos os nomes registrados (usado pelo Spawner)
  */
 export const getAllAvailableTypes = () => Object.keys(enemyRegistry);
