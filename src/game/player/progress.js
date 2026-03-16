@@ -1,6 +1,6 @@
 import { gameData } from "../../config/configManager.js";
 import { getSpecialBulletsPool } from "../projectiles/index.js";
-// import { UpgradeRegistry } from "../../core/upgrades.js";
+// import { UpgradeRegistry } from "../../game/upgrades/index.js";
 
 export function gainXp(player, amt) {
     player.xp += amt;

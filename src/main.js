@@ -1,6 +1,6 @@
 import { loadAllConfigs } from './config/configManager.js';
-import { initEnemyTypes } from './entities/enemy/types/typeLoader.js';
-import { initUpgrades } from './game/upgrades/upgradeLoader.js';
+import { initEnemyTypes } from './game/enemy/types/typeLoader.js';
+import { initUpgrades } from './game/upgrades/index.js';
 import { startGameLoop } from './game/gameLoop.js';
 async function bootstrap() {
     try {

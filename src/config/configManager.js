@@ -1,4 +1,4 @@
-import { bulletConfigs } from '../entities/projectiles/configs/index.js';
+import { bulletConfigs } from '../game/projectiles/configs/index.js';
 export const gameData = {
     bullets: bulletConfigs,
     enemies: {},

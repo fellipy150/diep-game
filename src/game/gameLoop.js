@@ -3,7 +3,7 @@ import { processarColisoes } from "./physics.js";
 import { mostrarMenuLevelUp, desenharGameOver } from "./gameUi.js";
 import { EnemySpawner } from "./enemySpawner.js";
 import { updateCamera, renderGame } from "./renderer.js";
-import { Player } from "../entities/player/index.js";
+import { Player } from "./player/player.js";
 import { UpgradeManager } from "./upgrades/upgradeManager.js";
 let lastTime = 0;
 export function startGameLoop() {

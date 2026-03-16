@@ -1,6 +1,6 @@
 import { gameState, criarNumeroDano } from "./state.js";
 import { camera } from "./renderer.js";
-import { MeleeAction } from "../entities/enemy/actions/meleeAction.js";
+import { MeleeAction } from "./enemy/actions/meleeAction.js";
 import { gameData } from "../config/configManager.js";
 export const verificarColisao = (o1, o2) => {
     const dx = o1.x - o2.x;
