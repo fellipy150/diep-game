@@ -1,40 +1,76 @@
 /**
- * Adiciona um efeito de status ao player.
- * Se o efeito for novo, registra um modificador no StatSheet.
+ * Gerenciador de Atributos (StatSheet)
+ * Centraliza o cálculo de atributos, permitindo bônus e penalidades temporárias.
  */
-export function addStatusEffect(player, type, duration) {
-    let existing = player.activeEffects.find(e => e.type === type);
-    
-    if (existing) {
-        existing.duration = Math.max(existing.duration, duration);
-    } else {
-        player.activeEffects.push({ type, duration });
-
-        // Lógica de Modificadores do StatSheet
-        // O ID (ex: 'status_glue') garante que o efeito não acumule infinitamente com ele mesmo
-        if (type === 'glue') {
-            player.stats.addModifier('speed', 'status_glue', 0.3, 'multiply');
-            console.log("🕸️ Player foi grudado! Velocidade reduzida.");
-        }
+export class StatSheet {
+    constructor(baseStats) {
+        // Valores nativos (ex: { speed: 1.0, damage: 40 })
+        this.base = { ...baseStats };
+        // Lista de modificadores ativos
+        this.modifiers = [];
     }
-}
 
-/**
- * Atualiza as durações e limpa modificadores expirados.
- */
-export function updateStatusEffects(player, dt) {
-    for (let i = player.activeEffects.length - 1; i >= 0; i--) {
-        let effect = player.activeEffects[i];
-        effect.duration -= dt;
+    /**
+     * Retorna o valor final de um atributo após todos os cálculos.
+     */
+    get(stat) {
+        if (this.base[stat] === undefined) return 0;
 
-        if (effect.duration <= 0) {
-            // Limpa o modificador do StatSheet ao encerrar o efeito
-            if (effect.type === 'glue') {
-                player.stats.removeModifier('speed', 'status_glue');
-                console.log("✨ Efeito de cola dissipado.");
-            }
-            
-            player.activeEffects.splice(i, 1);
-        }
+        let value = this.base[stat];
+        const mods = this.modifiers.filter(m => m.stat === stat);
+
+        // 1. Aplica Somas (Additive)
+        mods.filter(m => m.type === 'add').forEach(m => value += m.value);
+
+        // 2. Aplica Multiplicações (Multiplicative)
+        mods.filter(m => m.type === 'multiply').forEach(m => value *= m.value);
+
+        return value;
+    }
+
+    /**
+     * Registra um novo modificador (vindo de upgrades ou status effects)
+     */
+    addModifier(stat, id, value, type = 'multiply') {
+        // Evita duplicatas do mesmo ID (ex: não acumular duas colas iguais)
+        this.removeModifier(stat, id);
+        
+        this.modifiers.push({ stat, id, value, type });
+    }
+
+    /**
+     * Remove um modificador específico
+     */
+    removeModifier(stat, id) {
+        this.modifiers = this.modifiers.filter(m => !(m.stat === stat && m.id === id));
+    }
+
+    /**
+     * 🚀 INSTRUÇÃO APLICADA: getPreview
+     * Simula a aplicação de um modificador para exibir na UI antes do jogador escolher.
+     */
+    getPreview(stat, newModifier) {
+        // Pega o valor real atual
+        const current = this.get(stat);
+
+        // Simulação rápida: clona os modificadores atuais e injeta o novo
+        const tempModifiers = [...this.modifiers, { ...newModifier, stat }];
+        
+        let out = this.base[stat];
+
+        // Recalcula seguindo a ordem (Soma -> Multiplicação)
+        tempModifiers
+            .filter(m => m.stat === stat && m.type === 'add')
+            .forEach(m => out += m.value);
+
+        tempModifiers
+            .filter(m => m.stat === stat && m.type === 'multiply')
+            .forEach(m => out *= m.value);
+        
+        return { 
+            before: current, 
+            after: out,
+            diff: out - current 
+        };
     }
 }

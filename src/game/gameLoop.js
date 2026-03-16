@@ -1,6 +1,6 @@
 import { gameState, limparListaInPlace } from "./state.js";
 import { processarColisoes } from "./physics.js";
-import { mostrarMenuLevelUp, desenharGameOver } from "./gameUi.js";
+import { mostrarMenuLevelUp, desenharGameOver } from "./ui/index.js";
 import { EnemySpawner } from "./enemySpawner.js";
 import { updateCamera, renderGame } from "./renderer.js";
 import { Player } from "./player/player.js";

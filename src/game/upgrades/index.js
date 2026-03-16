@@ -2,9 +2,18 @@
 const modules = import.meta.glob('./types/*.js', { eager: true });
 const registry = [];
 
+// Pesos para o sorteio ponderado (Gacha-like)
+const RARITY_WEIGHTS = { 
+    common: 50, 
+    uncommon: 30, 
+    rare: 15, 
+    epic: 4, 
+    legendary: 1 
+};
+
 /**
  * Objeto Central de Upgrades
- * Gerencia a carga, sorteio e aplicação de melhorias via StatSheet e Sinergias
+ * Gerencia a carga, sorteio ponderado e aplicação via StatSheet
  */
 export const UpgradeRegistry = {
     
@@ -18,7 +27,7 @@ export const UpgradeRegistry = {
             
             if (data && data.id) {
                 registry.push(data);
-                console.log(`✨ Upgrade registrado: [${data.id}]`);
+                console.log(`✨ Upgrade registrado: [${data.id}] (${data.rarity || 'common'})`);
             }
         }
 
@@ -46,19 +55,39 @@ export const UpgradeRegistry = {
         return tags;
     },
 
-    // --- Lógica de Gerenciamento ---
+    // --- Lógica de Gerenciamento (Sorteio Ponderado) ---
 
-    getRandomChoices: (count = 4) => {
-        const available = UpgradeRegistry.getAll();
-        
-        if (!available || available.length === 0) {
-            console.warn("⚠️ Manager não achou upgrades! Retornando lista vazia.");
-            return [];
+    getChoices: (player, count = 4) => {
+        // 1. Filtra apenas os upgrades que ainda não estouraram o limite de stacks
+        const eligible = registry.filter(up => {
+            const stacks = player.upgradeCounts[up.id] || 0;
+            return !up.maxStacks || stacks < up.maxStacks;
+        });
+
+        const choices = [];
+        const pool = [...eligible];
+
+        // 2. Sorteio ponderado baseado nos pesos de raridade
+        for (let i = 0; i < count && pool.length > 0; i++) {
+            const totalWeight = pool.reduce((sum, up) => sum + (RARITY_WEIGHTS[up.rarity] || 0), 0);
+            
+            if (totalWeight <= 0) break; // Evita loop infinito se pesos estiverem errados
+
+            let random = Math.random() * totalWeight;
+            
+            const index = pool.findIndex(up => {
+                random -= (RARITY_WEIGHTS[up.rarity] || 0);
+                return random <= 0;
+            });
+
+            if (index !== -1) {
+                // Remove do pool temporário para não repetir na mesma escolha
+                choices.push(pool.splice(index, 1)[0]);
+            }
         }
-
-        return [...available]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, count);
+        
+        console.log(`🎲 Upgrades sorteados para Nível ${player.level}:`, choices.map(c => `${c.id} [${c.rarity}]`));
+        return choices;
     },
 
     /**
@@ -92,7 +121,6 @@ export const UpgradeRegistry = {
         }
 
         // 🚀 4. REAVALIAÇÃO DE SINERGIA
-        // Import dinâmico para evitar dependência circular e garantir o check imediato
         import('../synergy/index.js').then(m => {
             console.log(`🧬 [SynergyEngine] Reavaliando personagem após upgrade: ${id}`);
             m.SynergyEngine.evaluate(player);
@@ -100,10 +128,11 @@ export const UpgradeRegistry = {
             console.warn("⚠️ Falha ao carregar o motor de sinergia:", err);
         });
 
-        console.log(`✅ Upgrade [${up.name}] aplicado com sucesso.`);
         return true;
     }
 };
 
+// Aliases para compatibilidade
 export const initUpgrades = UpgradeRegistry.init;
 export const getAllUpgrades = UpgradeRegistry.getAll;
+export const UpgradeSystem = UpgradeRegistry; // Alias solicitado na instrução
