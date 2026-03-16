@@ -2,7 +2,7 @@ import { bulletConfigs } from '../entities/projectiles/configs/index.js';
 export const gameData = {
     bullets: bulletConfigs,
     enemies: {},
-    upgrades: { statUpgrades: [] },
+  //  upgrades: { statUpgrades: [] },
     synergies: { synergies: [] }
 };
 export async function loadAllConfigs() {
