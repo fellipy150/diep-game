@@ -1,4 +1,24 @@
 /**
+ * Gerencia a duração de efeitos temporários e limpa modificadores expirados.
+ * Deve ser chamada no loop de update principal (ex: update do Player).
+ */
+export function updateStatusEffects(player, dt) {
+    if (!player.activeEffects) return;
+
+    for (let i = player.activeEffects.length - 1; i >= 0; i--) {
+        const effect = player.activeEffects[i];
+        effect.duration -= dt;
+
+        // Se o tempo acabou, removemos o efeito do array e o mod do StatSheet
+        if (effect.duration <= 0) {
+            player.stats.removeModifier(effect.stat, effect.id);
+            player.activeEffects.splice(i, 1);
+            console.log(`✨ Efeito expirado: ${effect.id}`);
+        }
+    }
+}
+
+/**
  * Gerenciador de Atributos (StatSheet)
  * Centraliza o cálculo de atributos, permitindo bônus e penalidades temporárias.
  */

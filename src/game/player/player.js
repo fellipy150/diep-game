@@ -1,6 +1,6 @@
 // 1. Importação dos módulos especialistas e funções de status
 import { handleShooting, applyDamage } from "./Combat.js";
-import { updateStatusEffects } from './status.js'; 
+import { updateStatusEffects, StatSheet } from './status.js'; // Adicionado StatSheet no import
 import { gainXp, applyUpgrade } from "./progress.js";
 import { drawPlayer } from "./render.js";
 import { input } from "../../core/input.js"; // Assumindo a localização do input
@@ -17,20 +17,22 @@ export class Player {
         this.friction = 0.88;
         this.visualRotation = 0;
 
+        // --- 📊 SISTEMA DE STATS (Fase 2) ---
+        // O Player agora nasce com esses valores base encapsulados.
+        this.stats = new StatSheet({
+            maxHp: 200,
+            speed: 1.0,      // Multiplicador de aceleração
+            damage: 40,
+            fireRate: 0.6,
+            bulletSpeed: 500,
+            multiShot: 1
+        });
+
         // --- Status Base ---
-        this.maxHp = 200;
-        this.hp = this.maxHp;
-        this.baseSpeed = 1.0;
-        
-        // NOTA: 'this.currentSpeedMult' e 'this.efeitoColaTimer' removidos.
-        // O StatSheet e o módulo de status agora injetam/gerenciam 'this.speed'.
-        this.activeEffects = []; 
+        this.hp = this.stats.get('maxHp');
+        this.activeEffects = []; // { id, stat, duration }
 
         // --- Combate ---
-        this.damage = 40;
-        this.fireRate = 0.6;
-        this.bulletSpeed = 500;
-        this.multiShot = 1;
         this.currentBulletType = 'normal';
         this.shootTimer = 0;
         this.bullets = [];
@@ -41,18 +43,26 @@ export class Player {
         this.xpNeeded = 100;
         this.onLevelUp = null;
         this.upgradeCounts = {};
-        this.activeSynergies = [];
+        this.activeSynergies = new Set(); // Alterado para Set() conforme instrução
     }
+
+    // --- 🔍 GETTERS DINÂMICOS ---
+    // Permite que o resto do código acesse os status de forma transparente,
+    // sempre recebendo o valor atualizado calculado pelo StatSheet.
+    get damage() { return this.stats.get('damage'); }
+    get fireRate() { return this.stats.get('fireRate'); }
+    get speed() { return this.stats.get('speed'); }
+    get maxHp() { return this.stats.get('maxHp'); }
+    get bulletSpeed() { return this.stats.get('bulletSpeed'); } // Getter extra baseado na inicialização
+    get multiShot() { return this.stats.get('multiShot'); }     // Getter extra baseado na inicialização
 
     // --- Ciclo de Vida Principal ---
 
     update(dt) {
-        // 2. Gestão de efeitos e modificadores temporários
-        // O StatSheet recalcula 'this.speed' aqui dentro se os efeitos mudarem
+        // 1. Atualiza timers de buffs/debuffs
         updateStatusEffects(this, dt);
 
-        // 3. Movimentação Simplificada
-        // 'input' é o singleton que monitora teclado/mouse
+        // 2. Movimentação usando o StatSheet
         let dirX = input.move.x;
         let dirY = input.move.y;
         
@@ -63,7 +73,7 @@ export class Player {
             dirY /= mag; 
         }
 
-        // A MÁGICA: 'this.speed' já vem com o redutor da cola ou bônus de upgrade
+        // Agora 'this.speed' aciona o getter e é reativo aos upgrades/efeitos!
         let acc = this.baseAcceleration * this.speed; 
         
         this.velX = (this.velX + dirX * acc * dt) * this.friction;
@@ -72,7 +82,7 @@ export class Player {
         this.x += this.velX * dt;
         this.y += this.velY * dt;
 
-        // 4. Delegação de Combate
+        // 3. Delegação de Combate
         handleShooting(this, dt);
     }
 

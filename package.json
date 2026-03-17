@@ -1,13 +1,19 @@
 {
   "name": "meu-jogo-io",
   "version": "1.0.0",
-  "type": "module", 
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src -f unix | sed \"s|$PWD/||\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "eslint-formatter-compact": "^9.0.1",
+    "eslint-formatter-unix": "^9.0.1",
+    "globals": "^17.4.0",
     "vite": "^5.0.0"
   }
 }

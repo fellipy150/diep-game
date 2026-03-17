@@ -121,7 +121,7 @@ export const UpgradeRegistry = {
         }
 
         // 🚀 4. REAVALIAÇÃO DE SINERGIA
-        import('../synergy/index.js').then(m => {
+        import('../synergies/index.js').then(m => {
             console.log(`🧬 [SynergyEngine] Reavaliando personagem após upgrade: ${id}`);
             m.SynergyEngine.evaluate(player);
         }).catch(err => {

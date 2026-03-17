@@ -1,99 +1,102 @@
-export function getSmartAim(shooterPos, targetPos, targetVel, baseSpeed, bulletType, targetRadius = 20) {
+/**
+ * Helper para normalizar vetores e evitar repetição de código
+ */
+const toDir = (dx, dy, tx, ty) => {
+    const len = Math.hypot(dx, dy);
+    return {
+        x: len === 0 ? 0 : dx / len,
+        y: len === 0 ? 0 : dy / len,
+        targetX: tx,
+        targetY: ty
+    };
+};
+
+export function getSmartAim(shooterPos, targetPos, targetVel, baseSpeed, bulletType, _targetRadius = 20) {
+    // 1. Configurações de Comportamento (Fácil de balancear)
+    const speedMods = { gigante: 0.3, balinhas: 1.2 };
+    const lobbedTypes = ['bomba', 'acido', 'quicador', 'cola'];
+    
+    let effectiveSpeed = baseSpeed * (speedMods[bulletType] || 1);
+
+    // 2. Seleção de Estratégia
     if (bulletType === 'normal') {
         return predictInaccurate(shooterPos, targetPos, 0.15);
     }
-    let effectiveSpeed = baseSpeed;
-    if (bulletType === 'gigante') effectiveSpeed *= 0.3;
-    if (bulletType === 'balinhas') effectiveSpeed *= 1.2;
-    const lobbedTypes = ['bomba', 'acido', 'quicador', 'cola'];
+
     if (lobbedTypes.includes(bulletType)) {
-        return predictLobbed(targetPos, targetVel, 1.5);
+        return predictLobbed(shooterPos, targetPos, targetVel, 1.5);
     }
+
     if (bulletType === 'teleguiada' || bulletType === 'drone') {
         return predictInaccurate(shooterPos, targetPos, 0.1);
     }
+
     if (bulletType === 'bumerangue') {
-        let futureX = targetPos.x + (targetVel.x * 0.75);
-        let futureY = targetPos.y + (targetVel.y * 0.75);
-        let dx = futureX - shooterPos.x;
-        let dy = futureY - shooterPos.y;
-        let len = Math.hypot(dx, dy);
-        return { x: dx / len, y: dy / len };
+        const time = 0.75;
+        const tx = targetPos.x + (targetVel.x * time);
+        const ty = targetPos.y + (targetVel.y * time);
+        return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty);
     }
+
+    // Padrão: Interceptação precisa (Cálculo Quadrático)
     return predictIntercept(shooterPos, targetPos, targetVel, effectiveSpeed);
 }
+
 export function predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed) {
     const rx = targetPos.x - shooterPos.x;
     const ry = targetPos.y - shooterPos.y;
-    const a = (targetVel.x * targetVel.x) + (targetVel.y * targetVel.y) - (bulletSpeed * bulletSpeed);
-    const b = 2 * ((rx * targetVel.x) + (ry * targetVel.y));
-    const c = (rx * rx) + (ry * ry);
+
+    // Equação quadrática: a*t^2 + b*t + c = 0
+    const a = (targetVel.x ** 2) + (targetVel.y ** 2) - (bulletSpeed ** 2);
+    const b = 2 * (rx * targetVel.x + ry * targetVel.y);
+    const c = (rx ** 2) + (ry ** 2);
+
     const disc = (b * b) - (4 * a * c);
-    if (disc < 0) return null;
-    const t1 = (-b - Math.sqrt(disc)) / (2 * a);
-    const t2 = (-b + Math.sqrt(disc)) / (2 * a);
-    let t = Math.min(t1 > 0 ? t1 : Infinity, t2 > 0 ? t2 : Infinity);
-    if (t === Infinity) return null;
-    const futureX = targetPos.x + (targetVel.x * t);
-    const futureY = targetPos.y + (targetVel.y * t);
-    const dx = futureX - shooterPos.x;
-    const dy = futureY - shooterPos.y;
-    const len = Math.hypot(dx, dy);
-    if (len === 0) return { x: 0, y: 0 };
-    return { x: dx / len, y: dy / len, targetX: futureX, targetY: futureY };
+    if (disc < 0) return toDir(rx, ry, targetPos.x, targetPos.y);
+
+    const sqrtDisc = Math.sqrt(disc);
+    const t1 = (-b - sqrtDisc) / (2 * a);
+    const t2 = (-b + sqrtDisc) / (2 * a);
+    
+    const t = Math.min(t1 > 0 ? t1 : Infinity, t2 > 0 ? t2 : Infinity);
+    if (t === Infinity) return toDir(rx, ry, targetPos.x, targetPos.y);
+
+    const tx = targetPos.x + targetVel.x * t;
+    const ty = targetPos.y + targetVel.y * t;
+    
+    return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty);
 }
-export function predictLobbed(targetPos, targetVel, flightTime) {
-    const futureX = targetPos.x + (targetVel.x * flightTime);
-    const futureY = targetPos.y + (targetVel.y * flightTime);
-    return {
-        targetX: futureX,
-        targetY: futureY
-    };
+
+export function predictLobbed(shooterPos, targetPos, targetVel, flightTime) {
+    const tx = targetPos.x + (targetVel.x * flightTime);
+    const ty = targetPos.y + (targetVel.y * flightTime);
+    return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty);
 }
-export function predictArea(shooterPos, targetPos, targetVel, bulletSpeed) {
-    const dx = targetPos.x - shooterPos.x;
-    const dy = targetPos.y - shooterPos.y;
-    const dist = Math.hypot(dx, dy);
-    const t = dist / bulletSpeed;
-    const targetSpeed = Math.hypot(targetVel.x, targetVel.y);
-    const maxRadius = targetSpeed * t;
-    const randomAngle = Math.random() * Math.PI * 2;
-    const randomR = Math.sqrt(Math.random()) * maxRadius;
-    const targetX = targetPos.x + Math.cos(randomAngle) * randomR;
-    const targetY = targetPos.y + Math.sin(randomAngle) * randomR;
-    const finalDx = targetX - shooterPos.x;
-    const finalDy = targetY - shooterPos.y;
-    const len = Math.hypot(finalDx, finalDy);
-    if (len === 0) return { x: 0, y: 0 };
-    return { x: finalDx / len, y: finalDy / len };
-}
+
 export function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
     const dx = targetPos.x - shooterPos.x;
     const dy = targetPos.y - shooterPos.y;
-    const baseAngle = Math.atan2(dy, dx);
-    const finalAngle = baseAngle + (Math.random() - 0.5) * 2 * inaccuracy;
+    const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 2 * inaccuracy;
+    
     return {
-        x: Math.cos(finalAngle),
-        y: Math.sin(finalAngle)
+        x: Math.cos(angle),
+        y: Math.sin(angle),
+        targetX: targetPos.x,
+        targetY: targetPos.y
     };
 }
-export function predictEdge(shooterPos, targetPos, targetVel, bulletSpeed, targetRadius) {
+
+export function predictEdge(shooterPos, targetPos, targetVel, bulletSpeed, _targetRadius) {
     const intercept = predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed);
-    if (!intercept) return null;
-    const futureX = intercept.targetX;
-    const futureY = intercept.targetY;
-    const backX = targetPos.x - futureX;
-    const backY = targetPos.y - futureY;
-    const backLen = Math.hypot(backX, backY);
-    let edgeX = futureX;
-    let edgeY = futureY;
-    if (backLen > 0) {
-        edgeX += (backX / backLen) * targetRadius;
-        edgeY += (backY / backLen) * targetRadius;
-    }
-    const dx = edgeX - shooterPos.x;
-    const dy = edgeY - shooterPos.y;
-    const len = Math.hypot(dx, dy);
-    if (len === 0) return { x: 0, y: 0 };
-    return { x: dx / len, y: dy / len };
+    const tx = intercept.targetX;
+    const ty = intercept.targetY;
+    
+    const backX = targetPos.x - tx;
+    const backY = targetPos.y - ty;
+    const dist = Math.hypot(backX, backY) || 1;
+
+    const edgeX = tx + (backX / dist) * _targetRadius;
+    const edgeY = ty + (backY / dist) * _targetRadius;
+
+    return toDir(edgeX - shooterPos.x, edgeY - shooterPos.y, edgeX, edgeY);
 }

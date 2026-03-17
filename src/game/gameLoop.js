@@ -4,9 +4,9 @@ import { desenharGameOver } from "./ui/index.js";
 import { EnemySpawner } from "./enemySpawner.js";
 import { updateCamera, renderGame } from "./renderer.js";
 import { Player } from "./player/player.js";
-import { UpgradeSystem } from "../upgrades/index.js";
-import { showLevelUpMenu } from "../ui/LevelUpMenu.js";
-import { SynergyEngine } from "../synergies/index.js";
+import { UpgradeSystem } from "./upgrades/index.js";
+import { showLevelUpMenu } from "./ui/LevelUpMenu.js";
+import { SynergyEngine } from "./synergies/index.js";
 
 let lastTime = 0;
 

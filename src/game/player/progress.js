@@ -1,50 +1,50 @@
 import { UpgradeSystem } from '../upgrades/index.js';
 import { SynergyEngine } from '../synergy/index.js';
+import { showLevelUpMenu } from '../ui/LevelUpMenu.js'; // Importação descomentada
 
 /**
- * Gerencia o progresso do jogador: ganho de XP, level up e exibição do menu de upgrades.
- * 
- * @param {Object} player - Instância do jogador.
- * @param {Object} gameState - Estado global do jogo (usado para pausar).
+ * Adiciona experiência ao jogador e verifica se ele subiu de nível.
  */
-export function handleProgress(player, gameState) {
-    if (player.xp >= player.nextLevelXp) {
-        // Sobe de nível
+export function gainXp(player, amount, gameState) {
+    player.xp += amount;
+    
+    // Verifica se atingiu o XP necessário para o próximo nível
+    if (player.xp >= player.xpNeeded) {
         player.level++;
-        player.xp -= player.nextLevelXp;
-        player.nextLevelXp = Math.floor(player.nextLevelXp * 1.2); // Escalonamento de XP
+        player.xp -= player.xpNeeded;
+        player.xpNeeded = Math.floor(player.xpNeeded * 1.2); // Aumenta a dificuldade do próximo nível
+        
+        console.log(`🎉 Level Up! Nível ${player.level}`);
 
-        // Pausa o jogo para escolha do upgrade
-        gameState.isPaused = true;
-
-        // Obtém opções de upgrade baseadas no pool ponderado
-        const choices = UpgradeSystem.getChoices(player, 4);
-
-        // Exibe o menu de level up com as opções
-        showLevelUpMenu(choices, (selectedId) => {
-            // Aplica o upgrade escolhido
-            UpgradeSystem.apply(player, selectedId);
+        // Se o gameState for passado, pausamos o jogo e abrimos o menu
+        if (gameState) {
+            gameState.isPaused = true;
             
-            // Reavalia sinergias após o upgrade
-            SynergyEngine.evaluate(player);
+            // Busca 4 opções curadas com pesos (Fase 4)
+            const choices = UpgradeSystem.getChoices(player, 4);
             
-            // Retoma o jogo
-            gameState.isPaused = false;
-        });
+            // Aciona a interface de escolha e aguarda o callback
+            showLevelUpMenu(player, choices, (selectedId) => {
+                applyUpgrade(player, selectedId);
+                gameState.isPaused = false; // Retoma o jogo após a escolha
+            });
+        }
     }
 }
 
 /**
- * Função auxiliar para ganho de XP (pode ser chamada ao matar inimigos, etc.)
- * 
- * @param {Object} player - Instância do jogador.
- * @param {number} amt - Quantidade de XP a adicionar.
- * @param {Object} gameState - Estado global do jogo.
+ * Aplica um upgrade ao jogador e recalcula as sinergias.
  */
-export function gainXp(player, amt, gameState) {
-    player.xp += amt;
-    handleProgress(player, gameState);
-}
+export function applyUpgrade(player, upgradeId) {
+    // 1. O UpgradeSystem injeta os modificadores no StatSheet do Player
+    UpgradeSystem.apply(player, upgradeId);
+    
+    console.log(`💪 Upgrade aplicado: ${upgradeId}`);
 
-// Nota: As funções applyUpgrade e checkSynergies foram removidas,
-// pois agora são delegadas ao UpgradeSystem e SynergyEngine.0
+    // 2. O Motor de Sinergia verifica se uma nova combinação foi formada
+    if (SynergyEngine && typeof SynergyEngine.evaluate === 'function') {
+        SynergyEngine.evaluate(player);
+    }
+    
+    return true;
+}
