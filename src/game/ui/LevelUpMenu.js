@@ -1,4 +1,4 @@
-import { getSynergyHint } from '../synergy/index.js';
+import { getSynergyHint } from '../synergies/index.js';
 
 /**
  * Exibe o menu de Level Up com 4 opções de upgrades.

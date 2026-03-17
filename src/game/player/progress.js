@@ -1,5 +1,5 @@
 import { UpgradeSystem } from '../upgrades/index.js';
-import { SynergyEngine } from '../synergy/index.js';
+import { SynergyEngine } from '../synergies/index.js';
 import { showLevelUpMenu } from '../ui/LevelUpMenu.js'; // Importação descomentada
 
 /**

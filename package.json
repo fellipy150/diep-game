@@ -6,13 +6,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src -f unix | sed \"s|$PWD/||\""
+    "lint": "eslint src --cache -f unix | sed \"s|$PWD/||\"",
+    "lint:fix": "eslint src --cache --fix",
+    "lint:strict": "eslint src --max-warnings 0",
+    "lint:file": "eslint"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "eslint": "^10.0.3",
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
     "eslint-formatter-compact": "^9.0.1",
     "eslint-formatter-unix": "^9.0.1",
+    "eslint-plugin-import": "^2.32.0",
     "globals": "^17.4.0",
     "vite": "^5.0.0"
   }
