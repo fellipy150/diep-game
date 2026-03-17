@@ -82,6 +82,4 @@ export const UpgradeRegistry = {
         return true;
     }
 };
-export const initUpgrades = UpgradeRegistry.init;
-export const getAllUpgrades = UpgradeRegistry.getAll;
 export const UpgradeSystem = UpgradeRegistry;

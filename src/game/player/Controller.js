@@ -1,4 +1,5 @@
 import { input } from "../../core/input.js";
+
 export function handleInput(player, dt) {
     let dirX = input.move.x;
     let dirY = input.move.y;

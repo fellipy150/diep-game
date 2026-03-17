@@ -1,4 +1,5 @@
 import { camera } from "../../../game/renderer.js";
+
 export const MeleeAction = {
     execute: (attacker, target, createDamageNumber) => {
         if (attacker.meleeCooldown > 0) return;

@@ -1,4 +1,5 @@
 import { getSynergyHint } from '../synergies/index.js';
+
 export function showLevelUpMenu(player, choices, onSelect) {
     const overlay = document.createElement('div');
     overlay.id = 'level-up-overlay';

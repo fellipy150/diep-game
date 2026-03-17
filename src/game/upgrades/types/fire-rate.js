@@ -6,9 +6,12 @@ export const fireRateUpgrade = {
     tags: ['fire_rate', 'offensive'],
     maxStacks: 4,
     weight: 10,
-    apply: (player) => {
-        player.fireRate *= 0.85;
-        player.upgradeCounts = player.upgradeCounts || {};
-        player.upgradeCounts['fire_rate'] = (player.upgradeCounts['fire_rate'] || 0) + 1;
+    modifier: {
+        stat: 'fireRate',
+        value: 0.85,
+        type: 'multiply'
+    },
+    apply: (_player) => {
+        console.log("🔥 Cadência otimizada!");
     }
 };

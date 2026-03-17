@@ -1,29 +1,13 @@
+
 import { gameState, limparListaInPlace } from "./state.js";
 import { processarColisoes } from "./physics.js";
 import { desenharGameOver } from "./ui/index.js";
 import { EnemySpawner } from "./enemySpawner.js";
 import { updateCamera, renderGame } from "./renderer.js";
 import { Player } from "./player/player.js";
-import { UpgradeSystem } from "./upgrades/index.js";
-import { showLevelUpMenu } from "./ui/LevelUpMenu.js";
-import { SynergyEngine } from "./synergies/index.js";
+import { handleProgress } from "./player/progress.js";
+
 let lastTime = 0;
-function handleProgress(player, gameState) {
-    if (player.xp >= player.nextLevelXp) {
-        player.level++;
-        player.xp -= player.nextLevelXp;
-        player.nextLevelXp = Math.floor(player.nextLevelXp * 1.2);
-        gameState.isPaused = true;
-        console.log("🕵️ [DEBUG 3] Player subiu de nível!");
-        const choices = UpgradeSystem.getChoices(player, 4);
-        console.log("🕵️ [DEBUG 4] Enviando escolhas para o Menu:", choices);
-        showLevelUpMenu(choices, (selectedId) => {
-            UpgradeSystem.apply(player, selectedId);
-            SynergyEngine.evaluate(player);
-            gameState.isPaused = false;
-        });
-    }
-}
 export function startGameLoop() {
     gameState.player = new Player(gameState.canvas.width / 2, gameState.canvas.height / 2);
     gameState.player.onLevelUp = () => {
@@ -54,7 +38,7 @@ function loop(time) {
 }
 function update(dt) {
     const { player, enemies, hazards, damageNumbers } = gameState;
-    player.update(dt);
+    player.update(dt, gameState);
     EnemySpawner.update(dt, gameState);
     for (let i = damageNumbers.length - 1; i >= 0; i--) {
         const n = damageNumbers[i];

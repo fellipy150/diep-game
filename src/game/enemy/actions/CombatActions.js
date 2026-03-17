@@ -1,4 +1,5 @@
 import { Bullet } from "../../projectiles/index.js";
+
 export const CombatActions = {
     simpleShoot: (enemy) => {
         if (!enemy.shootTarget || enemy.shootCooldown > 0) return;

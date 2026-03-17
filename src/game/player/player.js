@@ -3,6 +3,7 @@ import { updateStatusEffects, StatSheet } from './status.js';
 import { gainXp, applyUpgrade } from "./progress.js";
 import { drawPlayer } from "./render.js";
 import { input } from "../../core/input.js";
+
 export class Player {
     constructor(x, y) {
         this.x = x;
@@ -39,8 +40,8 @@ export class Player {
     get maxHp() { return this.stats.get('maxHp'); }
     get bulletSpeed() { return this.stats.get('bulletSpeed'); }
     get multiShot() { return this.stats.get('multiShot'); }
-    update(dt) {
-        // 1. Atualiza timers de buffs/debuffs
+    update(dt, gameState) {
+        // 1. Gestão de efeitos temporários (buffs/debuffs)
         updateStatusEffects(this, dt);
         let dirX = input.move.x;
         let dirY = input.move.y;
@@ -49,13 +50,12 @@ export class Player {
             dirX /= mag;
             dirY /= mag;
         }
-        // Agora 'this.speed' aciona o getter e é reativo aos upgrades/efeitos!
         const acc = this.baseAcceleration * this.speed;
         this.velX = (this.velX + dirX * acc * dt) * this.friction;
         this.velY = (this.velY + dirY * acc * dt) * this.friction;
         this.x += this.velX * dt;
         this.y += this.velY * dt;
-        handleShooting(this, dt);
+        handleShooting(this, dt, gameState);
     }
     draw(ctx, camera) {
         drawPlayer(this, ctx, camera);

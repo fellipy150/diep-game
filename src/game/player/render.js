@@ -1,4 +1,5 @@
 import { input } from "../../core/input.js";
+
 export function drawPlayer(player, ctx, camera) {
     const drawX = player.x - camera.x;
     const drawY = player.y - camera.y;
