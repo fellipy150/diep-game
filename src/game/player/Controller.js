@@ -9,15 +9,15 @@ export function handleInput(player, dt) {
     let dirY = input.move.y;
     
     // Normaliza o vetor de movimento para evitar que o player ande mais rápido na diagonal
-    let magSq = dirX * dirX + dirY * dirY;
+    const magSq = dirX * dirX + dirY * dirY;
     if (magSq > 1) {
-        let mag = Math.sqrt(magSq);
+        const mag = Math.sqrt(magSq);
         dirX /= mag;
         dirY /= mag;
     }
 
     // Calcula a aceleração considerando a base, a velocidade do player e os multiplicadores de efeitos (ex: cola)
-    let acc = player.baseAcceleration * player.baseSpeed * player.currentSpeedMult;
+    const acc = player.baseAcceleration * player.baseSpeed * player.currentSpeedMult;
     
     // Aplica a aceleração à velocidade atual
     player.velX += dirX * acc * dt;

@@ -11,7 +11,7 @@ export const TargetingActions = {
                 closest = player;
             }
         }
-        for (let other of enemies) {
+        for (const other of enemies) {
             if (other === self || other.dead) continue;
             const dx = other.x - self.x;
             const dy = other.y - self.y;

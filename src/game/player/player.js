@@ -67,14 +67,14 @@ export class Player {
         let dirY = input.move.y;
         
         // Normalização do vetor de movimento (evita que andar na diagonal seja mais rápido)
-        let mag = Math.sqrt(dirX * dirX + dirY * dirY);
+        const mag = Math.sqrt(dirX * dirX + dirY * dirY);
         if (mag > 1) { 
             dirX /= mag; 
             dirY /= mag; 
         }
 
         // Agora 'this.speed' aciona o getter e é reativo aos upgrades/efeitos!
-        let acc = this.baseAcceleration * this.speed; 
+        const acc = this.baseAcceleration * this.speed; 
         
         this.velX = (this.velX + dirX * acc * dt) * this.friction;
         this.velY = (this.velY + dirY * acc * dt) * this.friction;

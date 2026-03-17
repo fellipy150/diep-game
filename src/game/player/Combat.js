@@ -42,17 +42,17 @@ export function handleShooting(player, dt, gameState) {
  */
 function executeShoot(player, gameState, damage, bulletSpeed, multishot) {
     const config = gameData.bullets[player.currentBulletType] || gameData.bullets['normal'];
-    let baseAngle = Math.atan2(input.aim.y, input.aim.x);
-    let shotCount = config.multishotScale === 0 ? 1 : Math.max(1, Math.round(multishot * config.multishotScale));
+    const baseAngle = Math.atan2(input.aim.y, input.aim.x);
+    const shotCount = config.multishotScale === 0 ? 1 : Math.max(1, Math.round(multishot * config.multishotScale));
     
     // 15 graus de spread
-    let spread = (15 * Math.PI / 180); 
-    let startAngle = baseAngle - (spread * (shotCount - 1)) / 2;
+    const spread = (15 * Math.PI / 180); 
+    const startAngle = baseAngle - (spread * (shotCount - 1)) / 2;
 
     for (let i = 0; i < shotCount; i++) {
-        let ang = startAngle + (i * spread);
-        let vx = Math.cos(ang);
-        let vy = Math.sin(ang);
+        const ang = startAngle + (i * spread);
+        const vx = Math.cos(ang);
+        const vy = Math.sin(ang);
         
         let projectile;
         if (config.type === 'lobbed') {

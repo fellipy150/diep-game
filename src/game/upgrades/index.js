@@ -91,7 +91,7 @@ export const UpgradeRegistry = {
     },
 
     /**
-     * Aplicação via Modificadores (StatSheet) com Reavaliação de Sinergia
+     * Aplicação via Modificadores (StatSheet)
      */
     apply: (player, id) => {
         const up = UpgradeRegistry.getById(id);
@@ -101,32 +101,32 @@ export const UpgradeRegistry = {
             return false;
         }
 
-        // 1. Injeta o modificador no StatSheet (Se houver)
-        if (up.modifier) {
-            if (player.stats && typeof player.stats.addModifier === 'function') {
-                player.stats.addModifier({
-                    ...up.modifier,
-                    source: id
-                });
-            }
-        }
-
-        // 2. Registra a contagem de upgrade
+        // 1. Registra a contagem de upgrade primeiro (para saber o stack atual)
         player.upgradeCounts = player.upgradeCounts || {};
         player.upgradeCounts[id] = (player.upgradeCounts[id] || 0) + 1;
+        const currentStack = player.upgradeCounts[id];
 
-        // 3. Executa onUnlock para efeitos instantâneos
+        // 2. Injeta o modificador no StatSheet (Se houver)
+        if (up.modifier && player.stats && typeof player.stats.addModifier === 'function') {
+            // Cria um ID único combinando o ID do upgrade e o número do stack
+            // Isso permite que o jogador pegue o mesmo upgrade várias vezes (acumulando o efeito)
+            const uniqueModId = `${id}_stack_${currentStack}`;
+            
+            player.stats.addModifier(
+                up.modifier.stat,
+                uniqueModId,
+                up.modifier.value,
+                up.modifier.type
+            );
+        }
+
+        // 3. Executa onUnlock para efeitos instantâneos (ex: curar vida)
         if (typeof up.onUnlock === 'function') {
             up.onUnlock(player);
         }
 
-        // 🚀 4. REAVALIAÇÃO DE SINERGIA
-        import('../synergies/index.js').then(m => {
-            console.log(`🧬 [SynergyEngine] Reavaliando personagem após upgrade: ${id}`);
-            m.SynergyEngine.evaluate(player);
-        }).catch(err => {
-            console.warn("⚠️ Falha ao carregar o motor de sinergia:", err);
-        });
+        // NOTA: A reavaliação de sinergia foi removida daqui para evitar o "Dependency Cycle".
+        // O arquivo `progress.js` agora é o responsável por chamar o SynergyEngine logo após o apply.
 
         return true;
     }
@@ -135,4 +135,4 @@ export const UpgradeRegistry = {
 // Aliases para compatibilidade
 export const initUpgrades = UpgradeRegistry.init;
 export const getAllUpgrades = UpgradeRegistry.getAll;
-export const UpgradeSystem = UpgradeRegistry; // Alias solicitado na instrução
+export const UpgradeSystem = UpgradeRegistry;

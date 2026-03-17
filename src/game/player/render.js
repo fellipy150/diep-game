@@ -1,16 +1,16 @@
 import { input } from "../../core/input.js";
 
 export function drawPlayer(player, ctx, camera) {
-    let drawX = player.x - camera.x;
-    let drawY = player.y - camera.y;
+    const drawX = player.x - camera.x;
+    const drawY = player.y - camera.y;
 
     // Desenha projéteis
-    for (let b of player.bullets) {
+    for (const b of player.bullets) {
         b.draw(ctx, camera, { x: player.x, y: player.y });
     }
 
     // Aura
-    let grad = ctx.createRadialGradient(drawX, drawY, player.radius - 10, drawX, drawY, player.radius + 15);
+    const grad = ctx.createRadialGradient(drawX, drawY, player.radius - 10, drawX, drawY, player.radius + 15);
     grad.addColorStop(0, "transparent");
     grad.addColorStop(0.5, "cyan");
     grad.addColorStop(1, "transparent");
@@ -56,13 +56,13 @@ export function drawPlayer(player, ctx, camera) {
 }
 
 function drawBars(player, ctx, drawX, drawY) {
-    let hpRatio = Math.max(0, player.hp / player.maxHp);
+    const hpRatio = Math.max(0, player.hp / player.maxHp);
     ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
     ctx.fillRect(drawX - 25, drawY + 30, 50, 6);
     ctx.fillStyle = "rgba(0, 255, 0, 0.9)";
     ctx.fillRect(drawX - 25, drawY + 30, 50 * hpRatio, 6);
 
-    let xpRatio = Math.max(0, player.xp / player.xpNeeded);
+    const xpRatio = Math.max(0, player.xp / player.xpNeeded);
     ctx.fillStyle = "rgba(100, 100, 100, 0.7)";
     ctx.fillRect(drawX - 25, drawY + 40, 50, 4);
     ctx.fillStyle = "rgba(0, 150, 255, 0.9)";

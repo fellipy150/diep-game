@@ -37,7 +37,7 @@ const SHAPES = {
 export const RenderEnemy = (ctx, camera, enemy) => {
     const drawX = enemy.x - camera.x;
     const drawY = enemy.y - camera.y;
-    for (let b of enemy.bullets) {
+    for (const b of enemy.bullets) {
         b.draw(ctx, camera);
     }
     ctx.save();

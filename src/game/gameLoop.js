@@ -68,13 +68,13 @@ function update(dt) {
     player.update(dt);
     EnemySpawner.update(dt, gameState);
     for (let i = damageNumbers.length - 1; i >= 0; i--) {
-        let n = damageNumbers[i];
+        const n = damageNumbers[i];
         n.y -= 40 * dt;
         n.life -= dt;
         if (n.life <= 0) damageNumbers.splice(i, 1);
     }
     for (let i = enemies.length - 1; i >= 0; i--) {
-        let e = enemies[i];
+        const e = enemies[i];
         if (e.dead) {
             enemies.splice(i, 1);
             player.gainXp(40);
@@ -88,7 +88,7 @@ function update(dt) {
     }
     processarColisoes();
     limparListaInPlace(player.bullets);
-    for (let e of enemies) {
+    for (const e of enemies) {
         limparListaInPlace(e.bullets);
     }
     if (player.hp <= 0) {

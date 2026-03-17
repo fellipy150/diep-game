@@ -1,5 +1,5 @@
-import { UpgradeSystem } from '../upgrades/index.js';
 import { showSynergyToast } from '../ui/SynergyToast.js';
+// A importação do UpgradeSystem foi removida do topo para evitar o ciclo de dependências.
 
 // 1. Registro de Sinergias (Contrato Declarativo)
 const synergyRegistry = [
@@ -19,7 +19,11 @@ const synergyRegistry = [
 ];
 
 export const SynergyEngine = {
-    evaluate: (player) => {
+    // Transformado em async para permitir a importação dinâmica interna
+    evaluate: async (player) => {
+        // Importação dinâmica feita dentro da função para quebrar o ciclo!
+        const { UpgradeSystem } = await import('../upgrades/index.js');
+        
         player.activeSynergies = player.activeSynergies || new Set();
         
         // Contabiliza as tags que o player possui atualmente
@@ -50,3 +54,9 @@ export const SynergyEngine = {
         });
     }
 };
+
+// 🛑 Correção do Linter: Adicionado '_' antes de player e upgrade
+// Export temporário para o Level Up Menu não quebrar
+export function getSynergyHint(_player, _upgrade) {
+    return null; // Retornaremos a lógica real quando tivermos as sinergias prontas
+}

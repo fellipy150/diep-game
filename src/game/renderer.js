@@ -23,23 +23,23 @@ export function renderGame(ctx, canvas, player, enemies, hazards, damageNumbers 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     desenharGrelha(ctx, canvas.width, canvas.height);
     if (hazards) {
-        for (let h of hazards) {
+        for (const h of hazards) {
             h.draw(ctx, camera);
         }
     }
     player.draw(ctx, camera);
     if (enemies) {
-        for (let e of enemies) {
+        for (const e of enemies) {
             if (!e.dead) {
                 e.draw(ctx, camera, player);
             }
         }
     }
-    for (let n of damageNumbers) {
-        let drawX = n.x - camera.x;
-        let drawY = n.y - camera.y;
+    for (const n of damageNumbers) {
+        const drawX = n.x - camera.x;
+        const drawY = n.y - camera.y;
         ctx.fillStyle = n.color;
-        let fontSize = Math.max(12, 20 * n.life);
+        const fontSize = Math.max(12, 20 * n.life);
         ctx.font = `bold ${fontSize}px sans-serif`;
         ctx.textAlign = "center";
         ctx.globalAlpha = Math.max(0, n.life);

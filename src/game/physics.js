@@ -2,6 +2,7 @@ import { gameState, criarNumeroDano } from "./state.js";
 import { camera } from "./renderer.js";
 import { MeleeAction } from "./enemy/actions/meleeAction.js";
 import { gameData } from "../config/configManager.js";
+
 export const verificarColisao = (o1, o2) => {
     const dx = o1.x - o2.x;
     const dy = o1.y - o2.y;
@@ -33,31 +34,31 @@ export function processarColisoes() {
     const { player, enemies, hazards } = gameState;
     if (!player) return;
     for (let i = 0; i < enemies.length; i++) {
-        let e1 = enemies[i];
+        const e1 = enemies[i];
         if (e1.dead) continue;
-        let dxP = player.x - e1.x;
-        let dyP = player.y - e1.y;
-        let distSqP = dxP * dxP + dyP * dyP;
-        let minDistP = player.radius + e1.radius;
+        const dxP = player.x - e1.x;
+        const dyP = player.y - e1.y;
+        const distSqP = dxP * dxP + dyP * dyP;
+        const minDistP = player.radius + e1.radius;
         if (distSqP < minDistP * minDistP) {
             resolverSobreposicao(player, e1, dxP, dyP, distSqP, minDistP);
             MeleeAction.execute(e1, player, criarNumeroDano);
         }
         for (let j = i + 1; j < enemies.length; j++) {
-            let e2 = enemies[j];
+            const e2 = enemies[j];
             if (e2.dead) continue;
-            let dxE = e1.x - e2.x;
-            let dyE = e1.y - e2.y;
-            let distSqE = dxE * dxE + dyE * dyE;
-            let minDistE = e1.radius + e2.radius;
+            const dxE = e1.x - e2.x;
+            const dyE = e1.y - e2.y;
+            const distSqE = dxE * dxE + dyE * dyE;
+            const minDistE = e1.radius + e2.radius;
             if (distSqE < minDistE * minDistE) {
                 resolverSobreposicao(e1, e2, dxE, dyE, distSqE, minDistE);
             }
         }
     }
-    for (let b of player.bullets) {
+    for (const b of player.bullets) {
         if (b.dead) continue;
-        for (let e of enemies) {
+        for (const e of enemies) {
             if (!e.dead && verificarColisao(b, e)) {
                 e.takeDamage(b.damage);
                 camera.shake = 8;
@@ -67,8 +68,8 @@ export function processarColisoes() {
             }
         }
     }
-    for (let atirador of enemies) {
-        for (let b of atirador.bullets) {
+    for (const atirador of enemies) {
+        for (const b of atirador.bullets) {
             if (b.dead || !b.radius) continue;
             if (verificarColisao(b, player)) {
                 player.hp -= b.damage;
@@ -81,7 +82,7 @@ export function processarColisoes() {
                 b.onHit(player);
                 continue;
             }
-            for (let vitima of enemies) {
+            for (const vitima of enemies) {
                 if (atirador !== vitima && !vitima.dead && verificarColisao(b, vitima)) {
                     vitima.takeDamage(b.damage);
                     criarNumeroDano(vitima.x, vitima.y, b.damage, "white");
@@ -91,7 +92,7 @@ export function processarColisoes() {
             }
         }
     }
-    for (let h of hazards) {
+    for (const h of hazards) {
         if (!h.dead && h.canDamage()) {
             const hObj = { x: h.x, y: h.y, radius: h.radius };
             if (verificarColisao(hObj, player)) {
@@ -99,7 +100,7 @@ export function processarColisoes() {
                 criarNumeroDano(player.x, player.y, h.damage, "red");
                 aplicarEfeitoDeStatus(player, h.type);
             }
-            for (let e of enemies) {
+            for (const e of enemies) {
                 if (!e.dead && verificarColisao(hObj, e)) {
                     e.takeDamage(h.damage);
                     criarNumeroDano(e.x, e.y, h.damage, "white");

@@ -16,7 +16,7 @@ export function getSmartAim(shooterPos, targetPos, targetVel, baseSpeed, bulletT
     const speedMods = { gigante: 0.3, balinhas: 1.2 };
     const lobbedTypes = ['bomba', 'acido', 'quicador', 'cola'];
     
-    let effectiveSpeed = baseSpeed * (speedMods[bulletType] || 1);
+    const effectiveSpeed = baseSpeed * (speedMods[bulletType] || 1);
 
     // 2. Seleção de Estratégia
     if (bulletType === 'normal') {
