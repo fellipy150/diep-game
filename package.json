@@ -6,8 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --cache -f unix | sed \"s|$PWD/||\"",
-    "lint:fix": "eslint src --cache --fix",
+    "lint": "eslint src -f unix | sed \"s|$PWD/||\"",
+    "lint:fix": "eslint src --fix",
     "lint:strict": "eslint src --max-warnings 0",
     "lint:file": "eslint"
   },
