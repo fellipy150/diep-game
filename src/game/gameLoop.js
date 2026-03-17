@@ -7,32 +7,23 @@ import { Player } from "./player/player.js";
 import { UpgradeSystem } from "./upgrades/index.js";
 import { showLevelUpMenu } from "./ui/LevelUpMenu.js";
 import { SynergyEngine } from "./synergies/index.js";
-
 let lastTime = 0;
-
 function handleProgress(player, gameState) {
     if (player.xp >= player.nextLevelXp) {
         player.level++;
         player.xp -= player.nextLevelXp;
-        player.nextLevelXp = Math.floor(player.nextLevelXp * 1.2); // Escalonamento de XP
-
+        player.nextLevelXp = Math.floor(player.nextLevelXp * 1.2);
         gameState.isPaused = true;
-
         console.log("🕵️ [DEBUG 3] Player subiu de nível!");
-        // 🎯 Fase 4: Busca opções inteligentes e ponderadas
         const choices = UpgradeSystem.getChoices(player, 4);
         console.log("🕵️ [DEBUG 4] Enviando escolhas para o Menu:", choices);
-
         showLevelUpMenu(choices, (selectedId) => {
-            // Aplica o upgrade e verifica sinergias
             UpgradeSystem.apply(player, selectedId);
             SynergyEngine.evaluate(player);
-
             gameState.isPaused = false;
         });
     }
 }
-
 export function startGameLoop() {
     gameState.player = new Player(gameState.canvas.width / 2, gameState.canvas.height / 2);
     gameState.player.onLevelUp = () => {
@@ -40,7 +31,6 @@ export function startGameLoop() {
     };
     requestAnimationFrame(loop);
 }
-
 function loop(time) {
     if (lastTime === 0) {
         lastTime = time;
@@ -62,7 +52,6 @@ function loop(time) {
     }
     requestAnimationFrame(loop);
 }
-
 function update(dt) {
     const { player, enemies, hazards, damageNumbers } = gameState;
     player.update(dt);

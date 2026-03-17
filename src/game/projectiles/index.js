@@ -1,6 +1,5 @@
-// Classes temporárias para não quebrar o jogo
 export class Bullet {
-    constructor() { this.dead = true; } // Nascem mortas
+    constructor() { this.dead = true; }
     update() {}
     draw() {}
 }

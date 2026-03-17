@@ -1,5 +1,4 @@
 import { gameState } from "../state.js";
-
 export function desenharGameOver() {
     const { ctx, canvas, player } = gameState;
     if (!ctx || !canvas) return;

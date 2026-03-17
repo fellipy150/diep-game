@@ -1,6 +1,5 @@
 import { Bullet, LobbedProjectile } from "../../projectiles/index.js";
 import { getSmartAim } from "../../../core/mathUtils.js";
-
 export const Attack = (enemy) => {
     const target = enemy.shootTarget;
     if (!target || target.dead || enemy.shootCooldown > 0) return;

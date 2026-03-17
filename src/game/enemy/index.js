@@ -1,6 +1,5 @@
 import { getType } from './types/typeLoader.js';
 import { RenderEnemy } from './systems/RenderSystem.js';
-
 export class Enemy {
     constructor(x, y, typeName = 'grunt', level = 1) {
         this.type = getType(typeName);
