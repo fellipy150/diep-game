@@ -16,16 +16,22 @@ export function handleShooting(player, dt, gameState) {
         if (player.onShootEffect) player.onShootEffect(player);
     }
 }
+
 function executeShoot(player, gameState, damage, bulletSpeed, multishot) {
-    const config = gameData.bullets[player.currentBulletType] || gameData.bullets['normal'];
+    // 🔴 PARAQUEDAS: Se a config não existir, cria uma configuração "fantasma" básica
+    const config = (gameData.bullets && gameData.bullets[player.currentBulletType]) 
+                   || { multishotScale: 1, type: 'normal' };
+
     const baseAngle = Math.atan2(input.aim.y, input.aim.x);
     const shotCount = config.multishotScale === 0 ? 1 : Math.max(1, Math.round(multishot * config.multishotScale));
     const spread = (15 * Math.PI / 180);
     const startAngle = baseAngle - (spread * (shotCount - 1)) / 2;
+    
     for (let i = 0; i < shotCount; i++) {
         const ang = startAngle + (i * spread);
         const vx = Math.cos(ang);
         const vy = Math.sin(ang);
+        
         let projectile;
         if (config.type === 'lobbed') {
             projectile = new LobbedProjectile(
@@ -48,6 +54,7 @@ function executeShoot(player, gameState, damage, bulletSpeed, multishot) {
         gameState.projectiles.push(projectile);
     }
 }
+
 export function applyDamage(player, amount) {
     player.hp -= amount;
     if (player.hp < 0) {

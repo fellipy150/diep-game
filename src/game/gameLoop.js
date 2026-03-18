@@ -46,15 +46,20 @@ function update(dt) {
         n.life -= dt;
         if (n.life <= 0) damageNumbers.splice(i, 1);
     }
+
     for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         if (e.dead) {
             enemies.splice(i, 1);
-            player.gainXp(40);
+            // 🔴 CORREÇÃO: XP só cai na conta se o Player causou a morte!
+            if (e.killedByPlayer) {
+                player.addXp(40);
+            }
         } else {
             e.update(dt, player, enemies, hazards);
         }
     }
+
     for (let i = hazards.length - 1; i >= 0; i--) {
         hazards[i].update(dt);
         if (hazards[i].dead) hazards.splice(i, 1);
