@@ -3,6 +3,9 @@ import { updateStatusEffects, StatSheet } from './status.js';
 import { gainXp, applyUpgrade } from "./progress.js";
 import { drawPlayer } from "./render.js";
 import { input } from "../../core/input.js";
+import { GunWeapon } from "../weapon/gun/GunWeapon.js";
+import { GameContext } from "../weapon/base/GameContext.js";
+
 
 export class Player {
     constructor(x, y) {
@@ -33,6 +36,8 @@ export class Player {
         this.onLevelUp = null;
         this.upgradeCounts = {};
         this.activeSynergies = new Set();
+        this.weapon = new GunWeapon();
+        this.weapon.equip(this);
     }
     get damage() { return this.stats.get('damage'); }
     get fireRate() { return this.stats.get('fireRate'); }
@@ -58,7 +63,8 @@ export class Player {
         for (const b of this.bullets) {
             if (!b.dead) b.update(dt);
         }
-        handleShooting(this, dt, gameState);
+const context = new GameContext(gameState);
+        this.weapon.update(dt, context);
     }
     draw(ctx, camera) {
         drawPlayer(this, ctx, camera);
