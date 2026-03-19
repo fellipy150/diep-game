@@ -2,7 +2,6 @@ export const gameState = {
     player: null,
     enemies: [],
     hazards: [],
-    projectiles: [],
     damageNumbers: [],
     isPaused: false,
     isGameOver: false,

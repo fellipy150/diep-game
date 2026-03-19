@@ -55,6 +55,9 @@ export class Player {
         this.velY = (this.velY + dirY * acc * dt) * this.friction;
         this.x += this.velX * dt;
         this.y += this.velY * dt;
+        for (const b of this.bullets) {
+            if (!b.dead) b.update(dt);
+        }
         handleShooting(this, dt, gameState);
     }
     draw(ctx, camera) {

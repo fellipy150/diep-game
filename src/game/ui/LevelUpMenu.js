@@ -18,12 +18,10 @@ export function showLevelUpMenu(player, choices, onSelect) {
     title.innerText = "NÍVEL CONCLUÍDO - ESCOLHA UM UPGRADE";
     applyStyles(title, { color: '#fff', marginBottom: '30px', letterSpacing: '2px' });
     overlay.appendChild(title);
-
-    
     const cardsContainer = document.createElement('div');
     applyStyles(cardsContainer, {
         display: 'flex',
-        flexDirection: window.innerWidth < 600 ? 'column' : 'row', // Se a tela for estreita, fica em coluna
+        flexDirection: window.innerWidth < 600 ? 'column' : 'row',
         flexWrap: 'wrap',
         gap: '15px',
         justifyContent: 'center',
@@ -31,11 +29,10 @@ export function showLevelUpMenu(player, choices, onSelect) {
         width: '100%',
         padding: '20px',
         boxSizing: 'border-box',
-        overflowY: 'auto', // Permite rolar para baixo se não couber na tela
-        maxHeight: '80vh', // Impede que o menu passe do tamanho da tela
+        overflowY: 'auto',
+        maxHeight: '80vh',
         perspective: '1000px'
     });
-
     choices.forEach(up => {
         const card = document.createElement('div');
         card.className = `upgrade-card ${up.rarity}`;
@@ -72,20 +69,19 @@ export function showLevelUpMenu(player, choices, onSelect) {
             ${hintHtml}
         `;
 applyStyles(card, {
-            width: window.innerWidth < 600 ? '90%' : '220px', // Ocupa 90% da tela no celular
-            maxWidth: '300px', // Mas não passa de 300px
-            minHeight: window.innerWidth < 600 ? 'auto' : '280px', // Altura flexível no mobile
+            width: window.innerWidth < 600 ? '90%' : '220px',
+            maxWidth: '300px',
+            minHeight: window.innerWidth < 600 ? 'auto' : '280px',
             backgroundColor: '#2d3436',
             border: `2px solid ${rarityColors[up.rarity]}`,
             borderRadius: '12px',
             padding: '15px',
             cursor: 'pointer',
-            boxSizing: 'border-box', // Evita que o padding estoure a largura
+            boxSizing: 'border-box',
             transition: 'transform 0.2s, box-shadow 0.2s',
             display: 'flex',
             flexDirection: 'column'
         });
-
         card.onmouseover = () => {
             card.style.transform = 'translateY(-10px) scale(1.05)';
             card.style.boxShadow = `0 10px 20px ${rarityColors[up.rarity]}44`;
@@ -94,22 +90,15 @@ applyStyles(card, {
             card.style.transform = 'translateY(0) scale(1)';
             card.style.boxShadow = 'none';
         };
-       // 🔴 FIX: Usar eventos de ponteiro para ignorar o bloqueio do Canvas 
-        // e resolver o problema do primeiro toque no mobile.
         const confirmarEscolha = (e) => {
-            e.preventDefault();  // Evita duplicação de eventos (click + touch)
-            e.stopPropagation(); // Impede que o input.js do Canvas roube o seu toque
-            
+            e.preventDefault();
+            e.stopPropagation();
             overlay.remove();
-            onSelect(up.id); 
+            onSelect(up.id);
         };
-
-        // Adicionamos tanto pointerdown quanto click por segurança e responsividade
         card.addEventListener('pointerdown', confirmarEscolha);
         card.addEventListener('click', confirmarEscolha);
-
         cardsContainer.appendChild(card);
-
     });
     overlay.appendChild(cardsContainer);
     document.body.appendChild(overlay);
@@ -117,6 +106,3 @@ applyStyles(card, {
 function applyStyles(element, styles) {
     Object.assign(element.style, styles);
 }
-
-
-

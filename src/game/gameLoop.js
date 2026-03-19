@@ -1,4 +1,3 @@
-
 import { gameState, limparListaInPlace } from "./state.js";
 import { processarColisoes } from "./physics.js";
 import { desenharGameOver } from "./ui/index.js";
@@ -46,12 +45,10 @@ function update(dt) {
         n.life -= dt;
         if (n.life <= 0) damageNumbers.splice(i, 1);
     }
-
     for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         if (e.dead) {
             enemies.splice(i, 1);
-            // 🔴 CORREÇÃO: XP só cai na conta se o Player causou a morte!
             if (e.killedByPlayer) {
                 player.addXp(40);
             }
@@ -59,7 +56,6 @@ function update(dt) {
             e.update(dt, player, enemies, hazards);
         }
     }
-
     for (let i = hazards.length - 1; i >= 0; i--) {
         hazards[i].update(dt);
         if (hazards[i].dead) hazards.splice(i, 1);
