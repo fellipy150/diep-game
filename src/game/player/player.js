@@ -2,7 +2,7 @@ import { handleShooting, applyDamage } from "./Combat.js";
 import { updateStatusEffects, StatSheet } from './status.js';
 import { gainXp, applyUpgrade } from "./progress.js";
 import { drawPlayer } from "./render.js";
-import { input } from "../../core/input.js";
+import { input } from "../../core/input/index.js";
 import { createStandardGun } from "../weapon/gun/types/standart-gun.js";
 import { GameContext } from "../weapon/base/GameContext.js";
 

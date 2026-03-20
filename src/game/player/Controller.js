@@ -1,4 +1,4 @@
-import { input } from "../../core/input.js";
+import { input } from "../../core/input/index.js";
 
 export function handleInput(player, dt) {
     let dirX = input.move.x;

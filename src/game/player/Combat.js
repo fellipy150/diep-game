@@ -1,4 +1,4 @@
-import { input } from "../../core/input.js";
+import { input } from "../../core/input/index.js";
 import { gameData } from "../../config/configManager.js";
 import { Bullet, LobbedProjectile } from "../projectiles/index.js";
 
