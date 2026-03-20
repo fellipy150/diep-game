@@ -1,6 +1,7 @@
 import { Enemy } from './enemy/index.js';
 import { getAllAvailableTypes } from './enemy/types/typeLoader.js';
 import { BASE_FOV_WIDTH } from './renderer.js';
+
 export const EnemySpawner = {
     spawnTimer: 0,
     spawnInterval: 2.0,

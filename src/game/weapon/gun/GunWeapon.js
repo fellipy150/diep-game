@@ -1,20 +1,20 @@
 import { WeaponBase } from "../base/WeaponBase.js";
 import { Bullet, LobbedProjectile } from "../../projectiles/index.js";
-import { input } from "../../../core/input.js";
 import { gameData } from "../../../config/configManager.js";
+
 export class GunWeapon extends WeaponBase {
-    constructor() {
-        super('basic_gun', 'Pistola de Slots');
-        this.maxSlots = 3;
-        this.currentAmmo = 3;
+    constructor(config) {
+        super(config.id || 'basic_gun', config.name || 'Pistola');
+        this.maxSlots = config.maxSlots || 3;
+        this.currentAmmo = this.maxSlots;
+        this.reloadTime = config.reloadTime || 0.8;
         this.reloadTimer = 0;
-        this.reloadTime = 1.5;
-        this.burstDelay = 0.1;
+        this.burstDelay = config.burstDelay || 0.1;
         this.burstTimer = 0;
+        this.bulletColor = config.bulletColor || '#00ffff';
+        this.bulletType = config.bulletType || 'normal';
     }
     update(dt, context) {
-        const p = this.owner;
-        if (!p) return;
         if (this.currentAmmo < this.maxSlots) {
             this.reloadTimer += dt;
             if (this.reloadTimer >= this.reloadTime) {
@@ -22,58 +22,24 @@ export class GunWeapon extends WeaponBase {
                 this.reloadTimer = 0;
             }
         }
-        if (this.burstTimer > 0) this.burstTimer -= dt;
-        // 2. Disparo ao SOLTAR (Fire on Release / Tap)
-        if (input.fireReleased) {
-            if (this.currentAmmo > 0 && this.burstTimer <= 0) {
-                this.fire(context);
-                this.currentAmmo--;
-                this.burstTimer = this.burstDelay;
-                if (p.onShootEffect) p.onShootEffect(p);
-            }
-            input.fireReleased = false;
+        if (this.burstTimer > 0) {
+            this.burstTimer -= dt;
         }
     }
-    findNearestEnemy(context) {
-        let nearest = null;
-        let minDistSq = Infinity;
-        if (!context.enemies) return null;
-        for (const enemy of context.enemies) {
-            if (enemy.dead) continue;
-            const dx = enemy.x - this.owner.x;
-            const dy = enemy.y - this.owner.y;
-            const distSq = dx * dx + dy * dy;
-            if (distSq < minDistSq) {
-                minDistSq = distSq;
-                nearest = enemy;
-            }
-        }
-        return nearest;
-    }
-    fire(context) {
+    executeFire(context, aimDir) {
+        if (this.currentAmmo <= 0 || this.burstTimer > 0) return false;
         const p = this.owner;
-        let shootDir = { x: input.lastAim.x, y: input.lastAim.y };
-        if (input.isTap) {
-            const target = this.findNearestEnemy(context);
-            if (target) {
-                const dx = target.x - p.x;
-                const dy = target.y - p.y;
-                const dist = Math.hypot(dx, dy);
-                shootDir = { x: dx / dist, y: dy / dist };
-                p.lockedTarget = target;
-                p.lockOnTimer = 1.0;
-                input.lastAim = { ...shootDir };
-            }
-        }
-        const damage = p.stats.get('damage');
-        const bulletSpeed = p.stats.get('bulletSpeed');
-        const multishot = p.stats.get('multiShot') || 1;
-        const config = (gameData.bullets && gameData.bullets[p.currentBulletType])
+        if (!p) return false;
+        const damage = p.stats ? p.stats.get('damage') : (p.type?.stats?.damage || 10);
+        const bulletSpeed = p.stats ? p.stats.get('bulletSpeed') : (p.type?.stats?.bulletSpeed || 300);
+        const multishot = p.stats ? (p.stats.get('multiShot') || 1) : 1;
+        const isPlayer = !!p.stats;
+        const config = (gameData.bullets && gameData.bullets[this.bulletType])
                        || { multishotScale: 1, type: 'normal' };
-        // --- Lógica de Espalhamento / Multishot ---
-        const baseAngle = Math.atan2(shootDir.y, shootDir.x);
+        // 3. Lógica de Multishot / Spread
+        const baseAngle = Math.atan2(aimDir.y, aimDir.x);
         const shotCount = config.multishotScale === 0 ? 1 : Math.max(1, Math.round(multishot * config.multishotScale));
-        const spread = (15 * Math.PI / 180);
+        const spread = (15 * Math.PI / 180); // 15 graus em radianos
         const startAngle = baseAngle - (spread * (shotCount - 1)) / 2;
         for (let i = 0; i < shotCount; i++) {
             const ang = startAngle + (i * spread);
@@ -84,7 +50,7 @@ export class GunWeapon extends WeaponBase {
                 projectile = new LobbedProjectile(
                     p.x, p.y,
                     p.x + vx * 400, p.y + vy * 400,
-                    p.currentBulletType,
+                    this.bulletType,
                     damage
                 );
             } else {
@@ -95,13 +61,16 @@ export class GunWeapon extends WeaponBase {
                     vy: vy,
                     speed: bulletSpeed,
                     damage: damage,
-                    source: 'player',
-                    color: '#00ffff',
-                    type: p.currentBulletType,
+                    source: isPlayer ? 'player' : 'enemy',
+                    color: this.bulletColor,
+                    type: this.bulletType,
                     effects: p.activeBulletEffects || []
                 });
             }
             context.addProjectile(projectile);
         }
+        this.currentAmmo--;
+        this.burstTimer = this.burstDelay;
+        return true;
     }
 }

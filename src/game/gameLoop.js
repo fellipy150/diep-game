@@ -5,6 +5,7 @@ import { EnemySpawner } from "./enemySpawner.js";
 import { Player } from "./player/player.js";
 import { handleProgress } from "./player/progress.js";
 import { resetCamera, updateCamera, renderGame } from "./renderer.js";
+
 let lastTime = 0;
 export function startGameLoop() {
     const { canvas } = gameState;

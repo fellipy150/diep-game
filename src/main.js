@@ -3,6 +3,7 @@ import { assets } from "./core/AssetLoader.js";
 import { initEnemyTypes } from './game/enemy/types/typeLoader.js';
 import { UpgradeSystem } from './game/upgrades/index.js';
 import { startGameLoop } from './game/gameLoop.js';
+
 async function bootstrap() {
     try {
         console.group("🚀 Iniciando Boot do Jogo");

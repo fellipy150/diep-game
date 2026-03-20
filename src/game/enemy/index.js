@@ -1,5 +1,7 @@
 import { getType } from './types/typeLoader.js';
 import { RenderEnemy } from './systems/RenderSystem.js';
+import { createStandardGun } from "../weapon/gun/types/standart-gun.js";
+
 export class Enemy {
     constructor(x, y, typeName = 'grunt', level = 1) {
         this.type = getType(typeName);
@@ -10,7 +12,6 @@ export class Enemy {
         this.maxHp = baseHp * (1 + (level - 1) * 0.2);
         this.hp = this.maxHp;
         this.color = this.type.stats.color || '#ff0000';
-        this.fireRate = this.type.stats.fireRate || 1;
         this.radius = this.type.stats.radius || 25;
         this.acceleration = this.type.stats.acceleration || 800;
         this.friction = 0.85;
@@ -18,41 +19,47 @@ export class Enemy {
         this.velY = 0;
         this.dead = false;
         this.bullets = [];
-        this.shootCooldown = 0;
         this.dodgeCheckTimer = 0;
         this.meleeCooldown = 0;
-                this.maxAmmo = this.type.stats.maxAmmo || 3;
-                this.ammo = this.maxAmmo;
-                this.reloadTime = this.type.stats.reloadTime || 2.0;
-                this.reloadTimer = 0;
+        this.weapon = createStandardGun({
+            bulletColor: '#ff4444',
+            reloadTime: this.type.stats.reloadTime || 2.5,
+            maxSlots: this.type.stats.maxAmmo || 3,
+            burstDelay: this.type.stats.fireRate || 0.2
+        });
+        this.weapon.equip(this);
     }
-    update(dt, player, allEnemies, threatBullets) {
+    update(dt, player, allEnemies, hazards) {
         if (this.dead) return;
         if (this.meleeCooldown > 0) this.meleeCooldown -= dt;
-        if (this.shootCooldown > 0) this.shootCooldown -= dt;
         if (this.dodgeCheckTimer > 0) this.dodgeCheckTimer -= dt;
-                   if (this.ammo < this.maxAmmo) {
-                       this.reloadTimer += dt;
-                       if (this.reloadTimer >= this.reloadTime) {
-                           this.ammo++;
-                           this.reloadTimer = 0;
-                       }
-                   }
-        const moveIntent = this.type.think(this, dt, player, allEnemies, threatBullets);
-        this.velX += moveIntent.x * this.acceleration * dt;
-        this.velY += moveIntent.y * this.acceleration * dt;
+        const context = {
+            enemies: allEnemies,
+            player,
+            hazards,
+            addProjectile: (p) => {
+                if (!this.bullets) this.bullets = [];
+                this.bullets.push(p);
+            }
+        };
+        if (this.weapon) this.weapon.update(dt, context);
+        const moveIntent = this.type.think(this, dt, player, allEnemies, hazards);
+        if (moveIntent) {
+            this.velX += moveIntent.x * this.acceleration * dt;
+            this.velY += moveIntent.y * this.acceleration * dt;
+        }
         this.velX *= this.friction;
         this.velY *= this.friction;
         this.x += this.velX * dt;
         this.y += this.velY * dt;
         this.updateBullets(dt, player);
+    }
+    takeDamage(amount) {
+        this.hp -= amount;
+        if (this.hp <= 0) {
+            this.hp = 0;
+            this.dead = true;
         }
-        takeDamage(amount) {
-            this.hp -= amount;
-            if (this.hp <= 0) {
-                this.hp = 0;
-                this.dead = true;
-            }
     }
     updateBullets(dt, player) {
         for (let i = this.bullets.length - 1; i >= 0; i--) {

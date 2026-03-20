@@ -3,8 +3,9 @@ import { updateStatusEffects, StatSheet } from './status.js';
 import { gainXp, applyUpgrade } from "./progress.js";
 import { drawPlayer } from "./render.js";
 import { input } from "../../core/input.js";
-import { GunWeapon } from "../weapon/gun/GunWeapon.js";
+import { createStandardGun } from "../weapon/gun/types/standart-gun.js";
 import { GameContext } from "../weapon/base/GameContext.js";
+
 export class Player {
     constructor(x, y) {
         this.x = x;
@@ -35,7 +36,7 @@ export class Player {
         this.onLevelUp = null;
         this.upgradeCounts = {};
         this.activeSynergies = new Set();
-        this.weapon = new GunWeapon();
+        this.weapon = createStandardGun();
         this.weapon.equip(this);
     }
     get damage() { return this.stats.get('damage'); }
@@ -44,8 +45,26 @@ export class Player {
     get maxHp() { return this.stats.get('maxHp'); }
     get bulletSpeed() { return this.stats.get('bulletSpeed'); }
     get multiShot() { return this.stats.get('multiShot'); }
+    findNearestTarget(context) {
+        let nearest = null;
+        let minDistSq = Infinity;
+        const validTargets = [...(context.enemies || [])];
+        if (context.hazards) {
+            validTargets.push(...context.hazards.filter(h => h.isTargetable));
+        }
+        for (const target of validTargets) {
+            if (target.dead) continue;
+            const dx = target.x - this.x;
+            const dy = target.y - this.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq < minDistSq) {
+                minDistSq = distSq;
+                nearest = target;
+            }
+        }
+        return nearest;
+    }
     update(dt, gameState) {
-        // 1. Gestão de efeitos temporários (buffs/debuffs)
         updateStatusEffects(this, dt);
         let dirX = input.move.x;
         let dirY = input.move.y;
@@ -64,12 +83,30 @@ export class Player {
         }
         if (this.lockOnTimer > 0) {
             this.lockOnTimer -= dt;
-            if (this.lockOnTimer <= 0) {
-                this.lockedTarget = null;
-            }
+            if (this.lockOnTimer <= 0) this.lockedTarget = null;
         }
         const context = new GameContext(gameState);
         this.weapon.update(dt, context);
+        if (input.fireReleased) {
+            let aimDir = { x: input.lastAim.x, y: input.lastAim.y };
+            if (input.isTap) {
+                const target = this.findNearestTarget(context);
+                if (target) {
+                    const dx = target.x - this.x;
+                    const dy = target.y - this.y;
+                    const dist = Math.hypot(dx, dy);
+                    aimDir = { x: dx / dist, y: dy / dist };
+                    this.lockedTarget = target;
+                    this.lockOnTimer = 1.0;
+                    input.lastAim = { ...aimDir };
+                }
+            }
+            const fired = this.weapon.executeFire(context, aimDir);
+            if (fired && this.onShootEffect) {
+                this.onShootEffect(this);
+            }
+            input.fireReleased = false;
+        }
     }
     draw(ctx, camera) {
         drawPlayer(this, ctx, camera);

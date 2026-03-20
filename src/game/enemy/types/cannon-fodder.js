@@ -1,6 +1,7 @@
 import { MoveActions } from '../actions/MoveActions.js';
 import { CombatActions } from '../actions/CombatActions.js';
 import { TargetingActions } from '../actions/TargetingActions.js';
+
 export const CannonFodder = {
     stats: {
         hp: 135,
