@@ -5,8 +5,6 @@ import { drawPlayer } from "./render.js";
 import { input } from "../../core/input.js";
 import { GunWeapon } from "../weapon/gun/GunWeapon.js";
 import { GameContext } from "../weapon/base/GameContext.js";
-
-
 export class Player {
     constructor(x, y) {
         this.x = x;
@@ -28,8 +26,9 @@ export class Player {
         this.hp = this.stats.get('maxHp');
         this.activeEffects = [];
         this.currentBulletType = 'normal';
-        this.shootTimer = 0;
         this.bullets = [];
+        this.lockedTarget = null;
+        this.lockOnTimer = 0;
         this.level = 1;
         this.xp = 0;
         this.xpNeeded = 100;
@@ -63,7 +62,13 @@ export class Player {
         for (const b of this.bullets) {
             if (!b.dead) b.update(dt);
         }
-const context = new GameContext(gameState);
+        if (this.lockOnTimer > 0) {
+            this.lockOnTimer -= dt;
+            if (this.lockOnTimer <= 0) {
+                this.lockedTarget = null;
+            }
+        }
+        const context = new GameContext(gameState);
         this.weapon.update(dt, context);
     }
     draw(ctx, camera) {

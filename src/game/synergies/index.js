@@ -1,5 +1,4 @@
 import { showSynergyToast } from '../ui/SynergyToast.js';
-
 const synergyRegistry = [
     {
         id: 'berserker_mode',

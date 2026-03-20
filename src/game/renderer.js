@@ -1,49 +1,69 @@
-export const camera = { x: 0, y: 0, shake: 0 };
-export const BASE_FOV_WIDTH = 750;
+// src/game/renderer.js
+export const CAMERA_CONFIG = {
+    BASE_FOV: 750,
+    START_FOV: 2500,
+    ZOOM_SPEED: 0.04,
+    LERP_SPEED: 0.15,
+    SHAKE_DECAY: 0.9
+};
+export const BASE_FOV_WIDTH = CAMERA_CONFIG.BASE_FOV;
+export const camera = {
+    x: 0,
+    y: 0,
+    centerX: 0,
+    centerY: 0,
+    shake: 0,
+    currentFOV: CAMERA_CONFIG.START_FOV
+};
+function getLogicalDimensions(canvasWidth, canvasHeight, fov) {
+    const scale = canvasWidth / fov;
+    return {
+        scale: scale,
+        width: fov,
+        height: canvasHeight / scale
+    };
+}
+export function resetCamera(player, canvasWidth, canvasHeight) {
+    camera.centerX = player.x;
+    camera.centerY = player.y;
+    camera.currentFOV = CAMERA_CONFIG.START_FOV;
+    const dim = getLogicalDimensions(canvasWidth, canvasHeight, camera.currentFOV);
+    camera.x = camera.centerX - (dim.width / 2);
+    camera.y = camera.centerY - (dim.height / 2);
+}
 export function updateCamera(player, canvasWidth, canvasHeight) {
-    const scale = canvasWidth / BASE_FOV_WIDTH;
-    const logicalWidth = BASE_FOV_WIDTH;
-    const logicalHeight = canvasHeight / scale;
-    let targetX = player.x;
-    let targetY = player.y;
-    const activeDrone = player.bullets.find(b => b.type === 'drone' && !b.dead);
-    if (activeDrone) {
-        targetX = activeDrone.x;
-        targetY = activeDrone.y;
-    }
-    const desiredX = targetX - (logicalWidth / 2);
-    const desiredY = targetY - (logicalHeight / 2);
-    camera.x += (desiredX - camera.x) * 0.1;
-    camera.y += (desiredY - camera.y) * 0.1;
+    camera.currentFOV += (CAMERA_CONFIG.BASE_FOV - camera.currentFOV) * CAMERA_CONFIG.ZOOM_SPEED;
+    camera.centerX += (player.x - camera.centerX) * CAMERA_CONFIG.LERP_SPEED;
+    camera.centerY += (player.y - camera.centerY) * CAMERA_CONFIG.LERP_SPEED;
+    const dim = getLogicalDimensions(canvasWidth, canvasHeight, camera.currentFOV);
+    camera.x = camera.centerX - (dim.width / 2);
+    camera.y = camera.centerY - (dim.height / 2);
     if (camera.shake > 0) {
-        camera.x += (Math.random() - 0.5) * camera.shake;
-        camera.y += (Math.random() - 0.5) * camera.shake;
-        camera.shake *= 0.9;
+        const sx = (Math.random() - 0.5) * camera.shake;
+        const sy = (Math.random() - 0.5) * camera.shake;
+        camera.x += sx;
+        camera.y += sy;
+        camera.shake *= CAMERA_CONFIG.SHAKE_DECAY;
         if (camera.shake < 0.1) camera.shake = 0;
     }
 }
-export function renderGame(ctx, canvas, player, enemies, hazards, damageNumbers = []) {
-    const scale = canvas.width / BASE_FOV_WIDTH;
-    const logicalWidth = BASE_FOV_WIDTH;
-    const logicalHeight = canvas.height / scale;
+export function renderGame(ctx, canvas, gameState) {
+    const { player, enemies, hazards, damageNumbers } = gameState;
+    const dim = getLogicalDimensions(canvas.width, canvas.height, camera.currentFOV);
     ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    ctx.scale(scale, scale);
-    desenharGrelha(ctx, logicalWidth, logicalHeight);
-    if (hazards) {
-        for (const h of hazards) {
-            h.draw(ctx, camera);
-        }
-    }
-    player.draw(ctx, camera);
-    if (enemies) {
-        for (const e of enemies) {
-            if (!e.dead) {
-                e.draw(ctx, camera, player);
-            }
-        }
-    }
+    ctx.scale(dim.scale, dim.scale);
+    desenharGrelha(ctx, dim.width, dim.height);
+    if (hazards) hazards.forEach(h => h.draw(ctx, camera));
+    if (player) player.bullets.forEach(b => b.draw(ctx, camera));
+    if (enemies) enemies.forEach(e => e.bullets?.forEach(b => b.draw(ctx, camera)));
+    if (enemies) enemies.forEach(e => !e.dead && e.draw(ctx, camera));
+    if (player) player.draw(ctx, camera);
+    if (damageNumbers) renderVFX(ctx, damageNumbers);
+    ctx.restore();
+}
+function renderVFX(ctx, damageNumbers) {
     for (const n of damageNumbers) {
         const drawX = n.x - camera.x;
         const drawY = n.y - camera.y;
@@ -55,7 +75,6 @@ export function renderGame(ctx, canvas, player, enemies, hazards, damageNumbers 
         ctx.fillText(n.val, drawX, drawY);
         ctx.globalAlpha = 1.0;
     }
-    ctx.restore();
 }
 function desenharGrelha(ctx, logicalWidth, logicalHeight) {
     ctx.strokeStyle = "rgba(0, 255, 255, 0.08)";

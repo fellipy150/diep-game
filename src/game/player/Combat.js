@@ -1,7 +1,6 @@
 import { input } from "../../core/input.js";
 import { gameData } from "../../config/configManager.js";
 import { Bullet, LobbedProjectile } from "../projectiles/index.js";
-
 export function handleShooting(player, dt, gameState) {
     const fireRate = player.stats.get('fireRate');
     const damage = player.stats.get('damage');

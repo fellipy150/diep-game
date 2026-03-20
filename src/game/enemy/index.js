@@ -1,6 +1,5 @@
 import { getType } from './types/typeLoader.js';
 import { RenderEnemy } from './systems/RenderSystem.js';
-
 export class Enemy {
     constructor(x, y, typeName = 'grunt', level = 1) {
         this.type = getType(typeName);
@@ -22,12 +21,23 @@ export class Enemy {
         this.shootCooldown = 0;
         this.dodgeCheckTimer = 0;
         this.meleeCooldown = 0;
+                this.maxAmmo = this.type.stats.maxAmmo || 3;
+                this.ammo = this.maxAmmo;
+                this.reloadTime = this.type.stats.reloadTime || 2.0;
+                this.reloadTimer = 0;
     }
     update(dt, player, allEnemies, threatBullets) {
         if (this.dead) return;
         if (this.meleeCooldown > 0) this.meleeCooldown -= dt;
         if (this.shootCooldown > 0) this.shootCooldown -= dt;
         if (this.dodgeCheckTimer > 0) this.dodgeCheckTimer -= dt;
+                   if (this.ammo < this.maxAmmo) {
+                       this.reloadTimer += dt;
+                       if (this.reloadTimer >= this.reloadTime) {
+                           this.ammo++;
+                           this.reloadTimer = 0;
+                       }
+                   }
         const moveIntent = this.type.think(this, dt, player, allEnemies, threatBullets);
         this.velX += moveIntent.x * this.acceleration * dt;
         this.velY += moveIntent.y * this.acceleration * dt;

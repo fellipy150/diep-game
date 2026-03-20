@@ -2,13 +2,15 @@ import { gameState, limparListaInPlace } from "./state.js";
 import { processarColisoes } from "./physics.js";
 import { desenharGameOver } from "./ui/index.js";
 import { EnemySpawner } from "./enemySpawner.js";
-import { updateCamera, renderGame } from "./renderer.js";
 import { Player } from "./player/player.js";
 import { handleProgress } from "./player/progress.js";
-
+import { resetCamera, updateCamera, renderGame } from "./renderer.js";
 let lastTime = 0;
 export function startGameLoop() {
-    gameState.player = new Player(gameState.canvas.width / 2, gameState.canvas.height / 2);
+    const { canvas } = gameState;
+    // Se usar canvas.width/2, garanta que o canvas já tenha o tamanho final
+    gameState.player = new Player(1000, 1000);
+    resetCamera(gameState.player, canvas.width, canvas.height);
     gameState.player.onLevelUp = () => {
         handleProgress(gameState.player, gameState);
     };
@@ -28,7 +30,7 @@ function loop(time) {
     }
     if (player && ctx && canvas) {
         updateCamera(player, canvas.width, canvas.height);
-        renderGame(ctx, canvas, player, enemies, hazards, damageNumbers);
+        renderGame(ctx, canvas, gameState);
     }
     if (isGameOver) {
         desenharGameOver();

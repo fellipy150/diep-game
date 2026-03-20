@@ -1,8 +1,8 @@
 import { loadAllConfigs } from './config/configManager.js';
+import { assets } from "./core/AssetLoader.js";
 import { initEnemyTypes } from './game/enemy/types/typeLoader.js';
 import { UpgradeSystem } from './game/upgrades/index.js';
 import { startGameLoop } from './game/gameLoop.js';
-
 async function bootstrap() {
     try {
         console.group("🚀 Iniciando Boot do Jogo");
@@ -14,12 +14,11 @@ async function bootstrap() {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
             });
-        } else {
-            console.warn("⚠️ Canvas com ID 'game' não encontrado no HTML!");
         }
-        console.log("📦 Carregando Configurações, Inimigos e Upgrades...");
+        console.log("📦 Carregando Assets, Configurações e Sistemas...");
         await Promise.all([
             loadAllConfigs(),
+            assets.loadAll(),
             initEnemyTypes(),
             UpgradeSystem.init()
         ]);

@@ -2,19 +2,24 @@ export class Input {
     constructor() {
         this.move = { x: 0, y: 0 };
         this.aim = { x: 0, y: 0 };
+        this.lastAim = { x: 1, y: 0 };
         this.isShooting = false;
+        this.isAiming = false;
+        this.isManualAiming = false;
+        this.fireReleased = false;
+        this.isTap = false;
         this.joyMove = document.getElementById('joystick-move');
         this.stickMove = document.getElementById('stick-move');
         this.joyAim = document.getElementById('joystick-aim');
         this.stickAim = document.getElementById('stick-aim');
-        this.moveTouchId = null;
-        this.aimTouchId = null;
+        this.joyData = {
+            move: { base: this.joyMove, stick: this.stickMove, id: null, ox: 0, oy: 0, cx: 0, cy: 0 },
+            aim: { base: this.joyAim, stick: this.stickAim, id: null, ox: 0, oy: 0, cx: 0, cy: 0 }
+        };
         this.maxRadius = 40;
-        if (this.joyMove && this.joyAim) {
-            this.initEvents();
-        } else {
-            console.warn("Joysticks não encontrados no DOM. Verifique seu index.html.");
-        }
+        this.aimTimer = null;
+        this.feedbackTimer = null;
+        if (this.joyMove && this.joyAim) this.initEvents();
     }
     initEvents() {
         const handlePrevention = (e) => {
@@ -24,64 +29,104 @@ export class Input {
         };
         document.addEventListener('touchstart', handlePrevention, { passive: false });
         document.addEventListener('touchmove', handlePrevention, { passive: false });
-        this.setupJoystick(this.joyMove, this.stickMove, 'move');
-        this.setupJoystick(this.joyAim, this.stickAim, 'aim');
+        requestAnimationFrame(() => this.saveOriginalPositions());
+        this.setupJoystick('move');
+        this.setupJoystick('aim');
     }
-    setupJoystick(baseEl, stickEl, type) {
-        if (!baseEl || !stickEl) return;
-        baseEl.addEventListener('touchstart', (e) => {
+    saveOriginalPositions() {
+        ['move', 'aim'].forEach(type => {
+            const data = this.joyData[type];
+            if (!data.base) return;
+            const rect = data.base.getBoundingClientRect();
+            data.ox = rect.left + rect.width / 2;
+            data.oy = rect.top + rect.height / 2;
+            data.cx = data.ox;
+            data.cy = data.oy;
+        });
+    }
+    setupJoystick(type) {
+        const data = this.joyData[type];
+        if (!data.base || !data.stick) return;
+        data.base.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            const rect = baseEl.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-                if (type === 'move' && this.moveTouchId === null) {
-                    this.moveTouchId = touch.identifier;
-                    this.updateJoystick(touch, centerX, centerY, stickEl, type);
-                } else if (type === 'aim' && this.aimTouchId === null) {
-                    this.aimTouchId = touch.identifier;
-                    this.isShooting = true;
-                    this.updateJoystick(touch, centerX, centerY, stickEl, type);
+                if (data.id === null) {
+                    data.id = touch.identifier;
+                    data.cx = touch.clientX;
+                    data.cy = touch.clientY;
+                    this.updateBaseVisual(type);
+                    if (type === 'aim') {
+                        this.aimStartTime = Date.now();
+                        this.aimStartPos = { x: touch.clientX, y: touch.clientY };
+                        this.isManualAiming = false;
+                        clearTimeout(this.aimTimer);
+                        this.aimTimer = setTimeout(() => {
+                            this.isManualAiming = true;
+                            this.isAiming = true;
+                        }, 500);
+                    }
+                    this.updateJoystick(touch, type);
                 }
             }
         }, { passive: false });
         document.addEventListener('touchmove', (e) => {
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-                if (touch.identifier === this.moveTouchId) {
-                    const rect = this.joyMove.getBoundingClientRect();
-                    this.updateJoystick(touch, rect.left + rect.width / 2, rect.top + rect.height / 2, this.stickMove, 'move');
-                } else if (touch.identifier === this.aimTouchId) {
-                    const rect = this.joyAim.getBoundingClientRect();
-                    this.updateJoystick(touch, rect.left + rect.width / 2, rect.top + rect.height / 2, this.stickAim, 'aim');
+                if (touch.identifier === data.id) {
+                    if (type === 'aim') {
+                        const distMoved = Math.hypot(touch.clientX - this.aimStartPos.x, touch.clientY - this.aimStartPos.y);
+                        if (distMoved > 10) {
+                            clearTimeout(this.aimTimer);
+                            this.isManualAiming = true;
+                            this.isAiming = true;
+                        }
+                    }
+                    this.updateJoystick(touch, type);
                 }
             }
         }, { passive: false });
         const handleEnd = (e) => {
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const touch = e.changedTouches[i];
-                if (touch.identifier === this.moveTouchId) {
-                    this.moveTouchId = null;
-                    this.resetJoystick(this.stickMove, 'move');
-                } else if (touch.identifier === this.aimTouchId) {
-                    this.aimTouchId = null;
-                    this.isShooting = false;
-                    this.resetJoystick(this.stickAim, 'aim');
+                if (touch.identifier === data.id) {
+                    data.id = null;
+                    if (type === 'aim') {
+                        const duration = Date.now() - this.aimStartTime;
+                        clearTimeout(this.aimTimer);
+                        if (duration < 500 && !this.isManualAiming) {
+                            this.isTap = true;
+                            this.triggerAutoFireFeedback();
+                        } else {
+                            this.isTap = false;
+                        }
+                        this.isAiming = false;
+                        this.fireReleased = true;
+                    }
+                    this.resetJoystick(type);
                 }
             }
         };
         document.addEventListener('touchend', handleEnd);
         document.addEventListener('touchcancel', handleEnd);
     }
-    updateJoystick(touch, centerX, centerY, stickEl, type) {
-        const dx = touch.clientX - centerX;
-        const dy = touch.clientY - centerY;
-        const dist = Math.hypot(dx, dy);
+    updateJoystick(touch, type) {
+        const data = this.joyData[type];
+        let dx = touch.clientX - data.cx;
+        let dy = touch.clientY - data.cy;
+        let dist = Math.hypot(dx, dy);
+        if (dist > this.maxRadius) {
+            const excess = dist - this.maxRadius;
+            data.cx += (dx / dist) * excess;
+            data.cy += (dy / dist) * excess;
+            dx = touch.clientX - data.cx;
+            dy = touch.clientY - data.cy;
+            dist = this.maxRadius;
+            this.updateBaseVisual(type);
+        }
         const dirX = dist === 0 ? 0 : dx / dist;
         const dirY = dist === 0 ? 0 : dy / dist;
-        const visualDist = Math.min(dist, this.maxRadius);
-        stickEl.style.transform = `translate(${dirX * visualDist}px, ${dirY * visualDist}px)`;
+        data.stick.style.transform = `translate(${dx}px, ${dy}px)`;
         if (type === 'move') {
             const force = Math.min(dist / this.maxRadius, 1);
             this.move.x = dirX * force;
@@ -89,18 +134,42 @@ export class Input {
         } else if (type === 'aim') {
             this.aim.x = dirX;
             this.aim.y = dirY;
+            if (dist > 5) {
+                this.lastAim.x = dirX;
+                this.lastAim.y = dirY;
+            }
         }
     }
-    resetJoystick(stickEl, type) {
-        if (!stickEl) return;
-        stickEl.style.transform = `translate(0px, 0px)`;
+    updateBaseVisual(type) {
+        const data = this.joyData[type];
+        const deltaX = data.cx - data.ox;
+        const deltaY = data.cy - data.oy;
+        data.base.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    }
+    resetJoystick(type) {
+        const data = this.joyData[type];
+        data.cx = data.ox;
+        data.cy = data.oy;
+        data.stick.style.transform = `translate(0px, 0px)`;
+        data.base.style.transform = `translate(0px, 0px)`;
         if (type === 'move') {
-            this.move.x = 0;
-            this.move.y = 0;
-        } else if (type === 'aim') {
-            this.aim.x = 0;
-            this.aim.y = 0;
+            this.move = { x: 0, y: 0 };
+        } else {
+            this.aim = { x: 0, y: 0 };
         }
+    }
+    triggerAutoFireFeedback() {
+        const baseEl = this.joyData.aim.base;
+        if (!baseEl || this.feedbackTimer) clearTimeout(this.feedbackTimer);
+        baseEl.style.transition = 'none';
+        baseEl.style.opacity = '0.7';
+        void baseEl.offsetWidth;
+        baseEl.style.transition = 'opacity 0.25s ease-out';
+        baseEl.style.opacity = '1';
+        this.feedbackTimer = setTimeout(() => {
+            baseEl.style.transition = '';
+            this.feedbackTimer = null;
+        }, 300);
     }
 }
 export const input = new Input();

@@ -1,13 +1,14 @@
 import { MoveActions } from '../actions/MoveActions.js';
 import { CombatActions } from '../actions/CombatActions.js';
 import { TargetingActions } from '../actions/TargetingActions.js';
-
 export const CannonFodder = {
     stats: {
-        hp: 50,
-        acceleration: 450,
-        fireRate: 2.0,
-        bulletSpeed: 250,
+        hp: 135,
+        acceleration: 1000,
+        fireRate: 0.4,
+        maxAmmo: 3,
+        reloadTime: 2.5,
+        bulletSpeed: 400,
         damage: 10,
         radius: 18,
         color: '#8B9BB4',

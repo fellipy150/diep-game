@@ -1,7 +1,6 @@
 import { UpgradeSystem } from '../upgrades/index.js';
 import { SynergyEngine } from '../synergies/index.js';
 import { showLevelUpMenu } from '../ui/LevelUpMenu.js';
-
 export function gainXp(player, amount) {
     player.xp += amount;
     if (player.xp >= player.xpNeeded) {

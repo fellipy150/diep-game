@@ -1,11 +1,8 @@
 import { input } from "../../core/input.js";
-
 export function drawPlayer(player, ctx, camera) {
     const drawX = player.x - camera.x;
     const drawY = player.y - camera.y;
-    for (const b of player.bullets) {
-        b.draw(ctx, camera, { x: player.x, y: player.y });
-    }
+    // --- 1. EFEITOS DE FUNDO (Aura/Gradiente) ---
     const grad = ctx.createRadialGradient(drawX, drawY, player.radius - 10, drawX, drawY, player.radius + 15);
     grad.addColorStop(0, "transparent");
     grad.addColorStop(0.5, "cyan");
@@ -23,15 +20,34 @@ export function drawPlayer(player, ctx, camera) {
     ctx.beginPath();
     ctx.arc(drawX, drawY, player.radius - 5, 0, Math.PI * 2);
     ctx.fill();
-    if (input.aim.x !== 0 || input.aim.y !== 0) {
+    if (input.isAiming) {
+        ctx.save();
         ctx.strokeStyle = "rgba(0, 255, 255, 0.5)";
         ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(drawX, drawY);
-        ctx.lineTo(drawX + input.aim.x * 35, drawY + input.aim.y * 35);
+        ctx.lineTo(drawX + input.aim.x * 60, drawY + input.aim.y * 60);
         ctx.stroke();
+        ctx.restore();
     }
-    if (player.activeSynergies.length > 0) {
+    if (player.lockedTarget && !player.lockedTarget.dead && player.lockOnTimer > 0) {
+        const target = player.lockedTarget;
+        const targetDrawX = target.x - camera.x;
+        const targetDrawY = target.y - camera.y;
+        ctx.save();
+        ctx.translate(targetDrawX, targetDrawY);
+        ctx.rotate(performance.now() * 0.003);
+        ctx.strokeStyle = "rgba(255, 50, 50, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        const aimRadius = (target.radius || 20) + 10;
+        ctx.arc(0, 0, aimRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+    if (player.activeSynergies && player.activeSynergies.size > 0) {
         ctx.strokeStyle = "rgba(255, 255, 0, 0.5)";
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -51,8 +67,27 @@ function drawBars(player, ctx, drawX, drawY) {
     ctx.fillRect(drawX - 25, drawY + 40, 50, 4);
     ctx.fillStyle = "rgba(0, 150, 255, 0.9)";
     ctx.fillRect(drawX - 25, drawY + 40, 50 * xpRatio, 4);
+    const weapon = player.weapon;
+    if (weapon && weapon.maxSlots) {
+        const totalWidth = 50;
+        const slotWidth = (totalWidth - (weapon.maxSlots - 1)) / weapon.maxSlots;
+        let startX = drawX - 25;
+        for (let i = 0; i < weapon.maxSlots; i++) {
+            ctx.fillStyle = "rgba(50, 50, 50, 0.8)";
+            ctx.fillRect(startX, drawY + 20, slotWidth, 4);
+            if (i < weapon.currentAmmo) {
+                ctx.fillStyle = "rgba(0, 255, 255, 0.9)";
+                ctx.fillRect(startX, drawY + 20, slotWidth, 4);
+            } else if (i === weapon.currentAmmo) {
+                const reloadRatio = (weapon.reloadTimer || 0) / (weapon.reloadTime || 1);
+                ctx.fillStyle = "rgba(200, 200, 200, 0.9)";
+                ctx.fillRect(startX, drawY + 20, slotWidth * reloadRatio, 4);
+            }
+            startX += slotWidth + 1;
+        }
+    }
     ctx.fillStyle = "white";
-    ctx.font = "10px sans-serif";
+    ctx.font = "bold 10px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(`Lvl ${player.level}`, drawX, drawY + 54);
 }
