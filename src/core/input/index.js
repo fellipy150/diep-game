@@ -1,5 +1,6 @@
 import { MoveController } from './MoveController.js';
 import { AimController } from './AimController.js';
+import { SwapController } from './SwapController.js';
 
 class InputManager {
     constructor() {
@@ -9,6 +10,7 @@ class InputManager {
         const stickAim = document.getElementById('stick-aim');
         this.moveCtrl = new MoveController(baseMove, stickMove);
         this.aimCtrl = new AimController(baseAim, stickAim);
+        this.swapCtrl = new SwapController();
         // Prevenção global de scroll/zoom do navegador em dispositivos mobile
         this.setupGlobalPrevention();
     }
@@ -18,9 +20,11 @@ class InputManager {
     set lastAim(val) { this.aimCtrl.lastAim = val; }
     get isAiming() { return this.aimCtrl.isAiming; }
     get isTap() { return this.aimCtrl.isTap; }
-    // Combate (O Set é necessário porque a GunWeapon/Player faz: input.fireReleased = false)
     get fireReleased() { return this.aimCtrl.fireReleased; }
     set fireReleased(val) { this.aimCtrl.fireReleased = val; }
+    // 🔴 TROCA DE ARMA: Exposto para o Player/WeaponSystem consumir
+    get fireSwap() { return this.swapCtrl.value; }
+    set fireSwap(val) { this.swapCtrl.value = val; }
     setupGlobalPrevention() {
         const handlePrevention = (e) => {
             if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {

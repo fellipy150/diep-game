@@ -59,7 +59,7 @@ export class GunWeapon extends WeaponBase {
             const vy = Math.sin(ang);
 
             // 🔴 3. CONFIGURAÇÃO DA BALA (Base para mutação)
-            let bulletConfig = {
+            const bulletConfig = {
                 x: p.x,
                 y: p.y,
                 vx: vx,
