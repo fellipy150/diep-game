@@ -10,32 +10,40 @@ export function drawPlayer(player, ctx, camera) {
     // --- 1. EFEITOS DE FUNDO ---
     // (Aura removida para limpeza visual do campo de batalha)
 
-  // --- 2. CORPO DO PLAYER (Versão Clean) ---
-    // Removemos o arco externo ("segunda aura")
+ 
+
+    // --- 2. CORPO DO PLAYER (Versão Clean com "Olho" Dinâmico) ---
     
-    // Desenha o corpo principal (Círculo branco)
+    // Corpo principal (Círculo branco)
     ctx.fillStyle = "white";
     ctx.beginPath();
-    ctx.arc(drawX, drawY, player.radius - 5, 0, Math.PI * 2);
+    ctx.arc(drawX, drawY, player.radius - 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pequeno detalhe tático: Um ponto ciano na "frente" do boneco
-    // para você saber para onde ele está virado sem precisar de aura.
-    const frontX = drawX + Math.cos(player.visualRotation) * (player.radius - 8);
-    const frontY = drawY + Math.sin(player.visualRotation) * (player.radius - 8);
-    ctx.fillStyle = "cyan";
+    // 🔴 A BOLINHA PRETA (O "Olho")
+    // Calculamos a posição com base na visualRotation que foi atualizada no update
+    const eyeDist = player.radius - 10; // Distância do centro
+    const eyeX = drawX + Math.cos(player.visualRotation) * eyeDist;
+    const eyeY = drawY + Math.sin(player.visualRotation) * eyeDist;
+    
+    ctx.fillStyle = "black";
     ctx.beginPath();
-    ctx.arc(frontX, frontY, 3, 0, Math.PI * 2);
+    ctx.arc(eyeX, eyeY, 4, 0, Math.PI * 2); // Bolinha preta um pouco maior (4px)
     ctx.fill();
+
+
+
+
+
 
     // --- 3. LASER DE MIRA (Correção) ---
     // Se a mira manual não estiver aparecendo, remova temporariamente 
     // o 'input.isManualAiming' para testar se é um erro de flag.
     if (input.isAiming) { 
         ctx.save();
-        ctx.strokeStyle = "rgba(0, 255, 255, 0.6)"; // Um pouco mais visível
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]); // Tracejado
+        ctx.strokeStyle = "rgba(0, 255, 255, 0.4)"; // Um pouco mais visível
+        ctx.lineWidth = 4;
+        ctx.setLineDash([5, 0]); // Tracejado
         ctx.beginPath();
         ctx.moveTo(drawX, drawY);
         
@@ -44,7 +52,7 @@ export function drawPlayer(player, ctx, camera) {
         const dirX = input.aim.x || input.lastAim.x;
         const dirY = input.aim.y || input.lastAim.y;
         
-        ctx.lineTo(drawX + dirX * 100, drawY + dirY * 100); // Aumentamos o comprimento para 100
+        ctx.lineTo(drawX + dirX * 60, drawY + dirY * 60); // Aumentamos o comprimento para 100
         ctx.stroke();
         ctx.restore();
     }
