@@ -1,66 +1,62 @@
-// src/game/renderer.js
 import { renderHUD } from './ui/HUD/index.js';
 
 // ⚙️ CONFIGURAÇÕES DE CÂMERA
 export const CAMERA_CONFIG = {
-    BASE_FOV: 750,        // Resolução lógica padrão
-    START_FOV: 2500,      // Zoom inicial (efeito de entrada)
-    ZOOM_SPEED: 0.04,     // Velocidade da transição de zoom
-    LERP_SPEED: 0.15,     // Suavidade do seguimento do player
-    SHAKE_DECAY: 0.9      // Amortecimento do tremor
+    BASE_FOV: 750,
+    START_FOV: 2500,
+    ZOOM_SPEED: 0.04,
+    LERP_SPEED: 0.15,
+    SHAKE_DECAY: 0.9
 };
 
 export const BASE_FOV_WIDTH = CAMERA_CONFIG.BASE_FOV;
 
 export const camera = {
-    x: 0,
-    y: 0,
-    centerX: 0,
-    centerY: 0,
-    shake: 0,
-    currentFOV: CAMERA_CONFIG.START_FOV
+    x: 0, y: 0, centerX: 0, centerY: 0, shake: 0, currentFOV: CAMERA_CONFIG.START_FOV
 };
 
 // --- 🛠️ AUXILIARES ---
 
 function getLogicalDimensions(screenWidth, screenHeight, fov) {
-    // 🔴 CORREÇÃO: Usamos a tela CSS, garantindo que o HD não quebre a proporção
     const scale = screenWidth / fov;
-    return {
-        scale: scale,
-        width: fov,
-        height: screenHeight / scale
-    };
+    return { scale: scale, width: fov, height: screenHeight / scale };
+}
+
+// ✂️ FASE 1: LÓGICA DE CULLING (Descarte Espacial)
+function isVisible(entity, camera, logicalWidth, logicalHeight) {
+    // Define uma margem de segurança (raio da entidade ou padrão 30px)
+    const r = entity.radius || 30; 
+    
+    // Se a entidade estiver fora do retângulo da câmera, retorna false
+    return !(
+        entity.x + r < camera.x || 
+        entity.x - r > camera.x + logicalWidth || 
+        entity.y + r < camera.y || 
+        entity.y - r > camera.y + logicalHeight
+    );
 }
 
 // --- 🎥 LÓGICA DE CÂMERA ---
 
-// Nota: Ignoramos os argumentos antigos de largura/altura do canvas
 export function resetCamera(player) {
     camera.centerX = player.x;
     camera.centerY = player.y;
     camera.currentFOV = CAMERA_CONFIG.START_FOV;
     
-    // Pega as medidas limpas da janela
     const dim = getLogicalDimensions(window.innerWidth, window.innerHeight, camera.currentFOV);
     camera.x = camera.centerX - (dim.width / 2);
     camera.y = camera.centerY - (dim.height / 2);
 }
 
 export function updateCamera(player) {
-    // Animação de Zoom
     camera.currentFOV += (CAMERA_CONFIG.BASE_FOV - camera.currentFOV) * CAMERA_CONFIG.ZOOM_SPEED;
-    
-    // Interpolação do Centro (Foco)
     camera.centerX += (player.x - camera.centerX) * CAMERA_CONFIG.LERP_SPEED;
     camera.centerY += (player.y - camera.centerY) * CAMERA_CONFIG.LERP_SPEED;
 
-    // 🔴 CORREÇÃO: Pega as medidas limpas da janela (ignora o tamanho gigante do canvas.width)
     const dim = getLogicalDimensions(window.innerWidth, window.innerHeight, camera.currentFOV);
     camera.x = camera.centerX - (dim.width / 2);
     camera.y = camera.centerY - (dim.height / 2);
 
-    // Efeito de Tremor (Screen Shake)
     if (camera.shake > 0) {
         camera.x += (Math.random() - 0.5) * camera.shake;
         camera.y += (Math.random() - 0.5) * camera.shake;
@@ -74,44 +70,67 @@ export function updateCamera(player) {
 export function renderGame(ctx, canvas, gameState) {
     const { player, enemies, hazards, damageNumbers } = gameState;
     
-    // Usa o tamanho lógico da tela, não os pixels do canvas
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
     const dim = getLogicalDimensions(screenWidth, screenHeight, camera.currentFOV);
 
-    // 1. Limpa o Canvas usando as medidas reais da tela
+    // 1. Limpa o Canvas
     ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, screenWidth, screenHeight);
 
-    // 2. CAMADA DO MUNDO (Escalada e seguindo a câmera)
+    // 2. CAMADA DO MUNDO
     ctx.save();
     ctx.scale(dim.scale, dim.scale);
 
-    desenharGrelha(ctx, dim.width, dim.height);
+    // 🖼️ FASE 2: Grelha Pre-renderizada (Extremamente rápido)
+    desenharGrelhaOtimizada(ctx, dim.width, dim.height);
 
-    if (hazards) hazards.forEach(h => h.draw(ctx, camera));
+    // ✂️ FASE 1: Renderização com Culling aplicado a tudo
+    if (hazards) {
+        hazards.forEach(h => {
+            if (isVisible(h, camera, dim.width, dim.height)) h.draw(ctx, camera);
+        });
+    }
     
-    // Projéteis (abaixo das entidades)
-    if (player) player.bullets.forEach(b => b.draw(ctx, camera));
-    if (enemies) enemies.forEach(e => e.bullets?.forEach(b => b.draw(ctx, camera)));
+    // Projéteis do Player
+    if (player) {
+        player.bullets.forEach(b => {
+            if (isVisible(b, camera, dim.width, dim.height)) b.draw(ctx, camera);
+        });
+    }
 
-    // Entidades
-    if (enemies) enemies.forEach(e => !e.dead && e.draw(ctx, camera));
+    // Inimigos e Projéteis dos Inimigos
+    if (enemies) {
+        enemies.forEach(e => {
+            if (e.bullets) {
+                e.bullets.forEach(b => {
+                    if (isVisible(b, camera, dim.width, dim.height)) b.draw(ctx, camera);
+                });
+            }
+            if (!e.dead && isVisible(e, camera, dim.width, dim.height)) {
+                e.draw(ctx, camera);
+            }
+        });
+    }
+
+    // O Player sempre será desenhado (pois a câmera está nele)
     if (player) player.draw(ctx, camera);
 
-    // Efeitos visuais de mundo (Números de dano)
-    if (damageNumbers) renderVFX(ctx, damageNumbers);
+    if (damageNumbers) renderVFX(ctx, damageNumbers, dim.width, dim.height);
 
     ctx.restore();
 
-    // 3. CAMADA DE HUD (Fixa na tela, sem escala de câmera)
+    // 3. CAMADA DE HUD
     renderHUD(ctx, canvas, gameState);
 }
 
 // --- 📝 FUNÇÕES DE DESENHO INTERNAS ---
 
-function renderVFX(ctx, damageNumbers) {
+function renderVFX(ctx, damageNumbers, logicalWidth, logicalHeight) {
     for (const n of damageNumbers) {
+        // Culling para os números de dano também!
+        if (!isVisible({ x: n.x, y: n.y, radius: 20 }, camera, logicalWidth, logicalHeight)) continue;
+
         const drawX = n.x - camera.x;
         const drawY = n.y - camera.y;
         ctx.fillStyle = n.color;
@@ -124,31 +143,48 @@ function renderVFX(ctx, damageNumbers) {
     }
 }
 
-function desenharGrelha(ctx, logicalWidth, logicalHeight) {
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.08)";
-    ctx.lineWidth = 1;
+// 🖼️ FASE 2: CACHE DA GRELHA EM MEMÓRIA (Offscreen Canvas)
+let cachedGridPattern = null;
+
+function desenharGrelhaOtimizada(ctx, logicalWidth, logicalHeight) {
     const tamanhoCelula = 50;
+
+    // Gera a imagem do bloco da grelha apenas UMA VEZ na vida útil do jogo
+    if (!cachedGridPattern) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = tamanhoCelula;
+        offCanvas.height = tamanhoCelula;
+        const offCtx = offCanvas.getContext('2d');
+
+        // Desenha as bordas da célula
+        offCtx.strokeStyle = "rgba(0, 255, 255, 0.08)";
+        offCtx.lineWidth = 1;
+        offCtx.beginPath();
+        offCtx.moveTo(0, tamanhoCelula); offCtx.lineTo(tamanhoCelula, tamanhoCelula); // Linha Inferior
+        offCtx.moveTo(tamanhoCelula, 0); offCtx.lineTo(tamanhoCelula, tamanhoCelula); // Linha Direita
+        offCtx.stroke();
+
+        // Desenha o pontinho da interseção
+        offCtx.fillStyle = "rgba(0, 255, 255, 0.2)";
+        offCtx.beginPath();
+        offCtx.arc(tamanhoCelula, tamanhoCelula, 1.5, 0, Math.PI * 2);
+        offCtx.fill();
+
+        cachedGridPattern = ctx.createPattern(offCanvas, 'repeat');
+    }
+
+    // O deslocamento da textura baseado no movimento da câmera
+    const offsetX = camera.x % tamanhoCelula;
+    const offsetY = camera.y % tamanhoCelula;
+
+    ctx.save();
+    // Translada para criar a ilusão de movimento
+    ctx.translate(-offsetX, -offsetY);
+    ctx.fillStyle = cachedGridPattern;
     
-    const offsetX = Math.floor(camera.x) % tamanhoCelula;
-    const offsetY = Math.floor(camera.y) % tamanhoCelula;
-
-    // Linhas verticais e horizontais
-    ctx.beginPath();
-    for (let x = -offsetX; x < logicalWidth; x += tamanhoCelula) {
-        ctx.moveTo(x, 0); ctx.lineTo(x, logicalHeight);
-    }
-    for (let y = -offsetY; y < logicalHeight; y += tamanhoCelula) {
-        ctx.moveTo(0, y); ctx.lineTo(logicalWidth, y);
-    }
-    ctx.stroke();
-
-    // Pontos da grelha (Efeito visual)
-    ctx.fillStyle = "rgba(0, 255, 255, 0.2)";
-    for (let x = -offsetX; x < logicalWidth; x += tamanhoCelula) {
-        for (let y = -offsetY; y < logicalHeight; y += tamanhoCelula) {
-            ctx.beginPath();
-            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
+    // Desenha um único retângulo gigante cobrindo a tela toda usando a textura em repetição
+    // Adicionamos tamanhoCelula extra para cobrir as bordas durante a translação
+    ctx.fillRect(0, 0, logicalWidth + tamanhoCelula, logicalHeight + tamanhoCelula);
+    
+    ctx.restore();
 }
