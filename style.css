@@ -1,4 +1,23 @@
-body {
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* Usa dvh (Dynamic Viewport Height) se o navegador suportar, senão cai pro 100% normal */
+    height: 100dvh; 
+    overflow: hidden; /* Impede que a tela "pule" ao arrastar o dedo */
+    background-color: #111;
+    
+    /* Isso aqui é vital para jogos mobile: desativa o "puxar para recarregar" e zoom de pinça */
+    touch-action: none; 
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#gameCanvas {
+    display: block;
+}
+
+/*body {
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -13,6 +32,7 @@ canvas {
     width: 100vw;
     height: 100vh;
 }
+*/
 
 /* ==========================================
    JOYSTICKS (CONTROLES TOUCH)

@@ -23,28 +23,31 @@ export const camera = {
 
 // --- 🛠️ AUXILIARES ---
 
-function getLogicalDimensions(canvasWidth, canvasHeight, fov) {
-    const scale = canvasWidth / fov;
+function getLogicalDimensions(screenWidth, screenHeight, fov) {
+    // 🔴 CORREÇÃO: Usamos a tela CSS, garantindo que o HD não quebre a proporção
+    const scale = screenWidth / fov;
     return {
         scale: scale,
         width: fov,
-        height: canvasHeight / scale
+        height: screenHeight / scale
     };
 }
 
 // --- 🎥 LÓGICA DE CÂMERA ---
 
-export function resetCamera(player, canvasWidth, canvasHeight) {
+// Nota: Ignoramos os argumentos antigos de largura/altura do canvas
+export function resetCamera(player) {
     camera.centerX = player.x;
     camera.centerY = player.y;
     camera.currentFOV = CAMERA_CONFIG.START_FOV;
     
-    const dim = getLogicalDimensions(canvasWidth, canvasHeight, camera.currentFOV);
+    // Pega as medidas limpas da janela
+    const dim = getLogicalDimensions(window.innerWidth, window.innerHeight, camera.currentFOV);
     camera.x = camera.centerX - (dim.width / 2);
     camera.y = camera.centerY - (dim.height / 2);
 }
 
-export function updateCamera(player, canvasWidth, canvasHeight) {
+export function updateCamera(player) {
     // Animação de Zoom
     camera.currentFOV += (CAMERA_CONFIG.BASE_FOV - camera.currentFOV) * CAMERA_CONFIG.ZOOM_SPEED;
     
@@ -52,7 +55,8 @@ export function updateCamera(player, canvasWidth, canvasHeight) {
     camera.centerX += (player.x - camera.centerX) * CAMERA_CONFIG.LERP_SPEED;
     camera.centerY += (player.y - camera.centerY) * CAMERA_CONFIG.LERP_SPEED;
 
-    const dim = getLogicalDimensions(canvasWidth, canvasHeight, camera.currentFOV);
+    // 🔴 CORREÇÃO: Pega as medidas limpas da janela (ignora o tamanho gigante do canvas.width)
+    const dim = getLogicalDimensions(window.innerWidth, window.innerHeight, camera.currentFOV);
     camera.x = camera.centerX - (dim.width / 2);
     camera.y = camera.centerY - (dim.height / 2);
 
@@ -69,11 +73,15 @@ export function updateCamera(player, canvasWidth, canvasHeight) {
 
 export function renderGame(ctx, canvas, gameState) {
     const { player, enemies, hazards, damageNumbers } = gameState;
-    const dim = getLogicalDimensions(canvas.width, canvas.height, camera.currentFOV);
+    
+    // Usa o tamanho lógico da tela, não os pixels do canvas
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const dim = getLogicalDimensions(screenWidth, screenHeight, camera.currentFOV);
 
-    // 1. Limpa o Canvas
+    // 1. Limpa o Canvas usando as medidas reais da tela
     ctx.fillStyle = "#111";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, screenWidth, screenHeight);
 
     // 2. CAMADA DO MUNDO (Escalada e seguindo a câmera)
     ctx.save();
