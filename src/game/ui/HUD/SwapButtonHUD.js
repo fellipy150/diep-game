@@ -13,7 +13,7 @@ export function drawSwapButton(ctx, player, canvas) {
     if (nextWeapon) {
         ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
         ctx.font = "bold 12px sans-serif";
-        ctx.fillText("🔁", x - 10, y + 5);
+        ctx.fillText("🔁", Math.floor(x - 10), Math.floor(y + 5));
     }
     if (loadout.swapTimer > 0) {
         const angle = (loadout.swapTimer / loadout.swapCooldown) * Math.PI * 2;

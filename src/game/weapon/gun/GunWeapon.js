@@ -1,25 +1,21 @@
+import { ProjectilePool } from "../../projectiles/ProjectilePool.js";
 import { WeaponBase } from "../base/WeaponBase.js";
 import { Bullet, LobbedProjectile } from "../../projectiles/index.js";
 import { gameData } from "../../../config/configManager.js";
-// Importamos o Registry para consultar os efeitos das sinergias
 import { SynergyRegistry } from "../../synergies/SynergyRegistry.js";
 
 export class GunWeapon extends WeaponBase {
     constructor(config) {
         super(config.id || 'basic_gun', config.name || 'Pistola');
-        
         this.maxSlots = config.maxSlots || 3;
         this.currentAmmo = this.maxSlots;
         this.reloadTime = config.reloadTime || 0.8;
         this.reloadTimer = 0;
-        
         this.burstDelay = config.burstDelay || 0.1;
         this.burstTimer = 0;
-        
         this.bulletColor = config.bulletColor || '#00ffff';
         this.bulletType = config.bulletType || 'normal';
     }
-
     update(dt, context) {
         if (this.currentAmmo < this.maxSlots) {
             this.reloadTimer += dt;
@@ -32,33 +28,25 @@ export class GunWeapon extends WeaponBase {
             this.burstTimer -= dt;
         }
     }
-
     executeFire(context, aimDir) {
         if (this.currentAmmo <= 0 || this.burstTimer > 0) return false;
         const p = this.owner;
         if (!p) return false;
-
-        // 1. Extração de Status Base
         const damage = p.stats ? p.stats.get('damage') : (p.type?.stats?.damage || 10);
         const bulletSpeed = p.stats ? p.stats.get('bulletSpeed') : (p.type?.stats?.bulletSpeed || 300);
         const multishot = p.stats ? (p.stats.get('multiShot') || 1) : 1;
         const isPlayer = !!p.stats;
-
         const config = (gameData.bullets && gameData.bullets[this.bulletType])
                        || { multishotScale: 1, type: 'normal' };
-
         // 2. Lógica de Multishot / Spread
         const baseAngle = Math.atan2(aimDir.y, aimDir.x);
         const shotCount = config.multishotScale === 0 ? 1 : Math.max(1, Math.round(multishot * (config.multishotScale || 1)));
         const spread = (15 * Math.PI / 180);
         const startAngle = baseAngle - (spread * (shotCount - 1)) / 2;
-
         for (let i = 0; i < shotCount; i++) {
             const ang = startAngle + (i * spread);
             const vx = Math.cos(ang);
             const vy = Math.sin(ang);
-
-            // 🔴 3. CONFIGURAÇÃO DA BALA (Base para mutação)
             const bulletConfig = {
                 x: p.x,
                 y: p.y,
@@ -69,28 +57,20 @@ export class GunWeapon extends WeaponBase {
                 source: isPlayer ? 'player' : 'enemy',
                 color: this.bulletColor,
                 type: this.bulletType,
-                effects: [...(p.activeBulletEffects || [])], // Cópia dos efeitos persistentes
-                pierceCount: 0, // Pode ser alterado por sinergias
-                bounces: 0      // Pode ser alterado por sinergias
+                effects: [...(p.activeBulletEffects || [])],
+                pierceCount: 0,
+                bounces: 0
             };
-
-            // 🔴 4. A MÁGICA: Injeção de Sinergias Ativas
             if (isPlayer && p.activeSynergies) {
                 p.activeSynergies.forEach(synId => {
                     const syn = SynergyRegistry.find(s => s.id === synId);
                     if (!syn) return;
-
-                    // Checa se a condição dinâmica da sinergia está ativa neste frame
                     const conditionMet = !syn.condition || (p.synergyConditionsMet && p.synergyConditionsMet[synId]);
-
                     if (conditionMet && syn.effect && syn.effect.applyToBullet) {
-                        // A sinergia recebe o objeto de config e o altera por referência
                         syn.effect.applyToBullet(bulletConfig, p);
                     }
                 });
             }
-
-            // 5. Instanciação do Projétil
             let projectile;
             if (config.type === 'lobbed') {
                 projectile = new LobbedProjectile(
@@ -100,16 +80,12 @@ export class GunWeapon extends WeaponBase {
                     bulletConfig.damage
                 );
             } else {
-                // A Bullet recebe a config final, possivelmente modificada pelas sinergias
-                projectile = new Bullet(bulletConfig);
+                projectile = ProjectilePool.get(bulletConfig);
             }
-            
             context.addProjectile(projectile);
         }
-
         this.currentAmmo--;
         this.burstTimer = this.burstDelay;
         return true;
     }
 }
-

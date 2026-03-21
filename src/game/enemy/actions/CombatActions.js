@@ -1,3 +1,4 @@
+import { MathUtils } from "../../../core/math.js";
 // src/game/enemy/actions/CombatActions.js
 export const CombatActions = {
     simpleShoot: (enemy, context) => {

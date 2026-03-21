@@ -1,3 +1,4 @@
+import { ProjectilePool } from "../projectiles/ProjectilePool.js";
 import { input } from "../../core/input/index.js";
 import { gameData } from "../../config/configManager.js";
 import { Bullet, LobbedProjectile } from "../projectiles/index.js";
@@ -36,7 +37,7 @@ function executeShoot(player, gameState, damage, bulletSpeed, multishot) {
                 damage
             );
         } else {
-            projectile = new Bullet(
+            projectile = ProjectilePool.get(
                 player.x, player.y,
                 vx, vy,
                 bulletSpeed,

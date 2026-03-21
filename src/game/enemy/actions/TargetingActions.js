@@ -1,3 +1,5 @@
+import { MathUtils } from "../../../core/math.js";
+
 export const TargetingActions = {
     getClosestTarget: (self, player, enemies, radius = Infinity) => {
         let closest = null;

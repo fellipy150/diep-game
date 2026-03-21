@@ -1,80 +1,44 @@
 import { input } from "../../core/input/index.js";
 
-/**
- * Renderiza o jogador e seus overlays de combate (Mira, Lock-on, Sinergias).
- */
 export function drawPlayer(player, ctx, camera) {
     const drawX = player.x - camera.x;
     const drawY = player.y - camera.y;
-
-    // --- 1. EFEITOS DE FUNDO ---
-    // (Aura removida para limpeza visual do campo de batalha)
-
- 
-
-    // --- 2. CORPO DO PLAYER (Versão Clean com "Olho" Dinâmico) ---
-    
-    // Corpo principal (Círculo branco)
     ctx.fillStyle = "white";
     ctx.beginPath();
     ctx.arc(drawX, drawY, player.radius - 3, 0, Math.PI * 2);
     ctx.fill();
-
-    // 🔴 A BOLINHA PRETA (O "Olho")
-    // Calculamos a posição com base na visualRotation que foi atualizada no update
-    const eyeDist = player.radius - 10; // Distância do centro
+    const eyeDist = player.radius - 10;
     const eyeX = drawX + Math.cos(player.visualRotation) * eyeDist;
     const eyeY = drawY + Math.sin(player.visualRotation) * eyeDist;
-    
     ctx.fillStyle = "black";
     ctx.beginPath();
-    ctx.arc(eyeX, eyeY, 4, 0, Math.PI * 2); // Bolinha preta um pouco maior (4px)
+    ctx.arc(eyeX, eyeY, 4, 0, Math.PI * 2);
     ctx.fill();
-
-
-
-
-
-
-    // --- 3. LASER DE MIRA (Correção) ---
-    // Se a mira manual não estiver aparecendo, remova temporariamente 
-    // o 'input.isManualAiming' para testar se é um erro de flag.
-    if (input.isAiming) { 
+    if (input.isAiming) {
         ctx.save();
-        ctx.strokeStyle = "rgba(0, 255, 255, 0.4)"; // Um pouco mais visível
+        ctx.strokeStyle = "rgba(0, 255, 255, 0.4)";
         ctx.lineWidth = 4;
-        ctx.setLineDash([5, 0]); // Tracejado
+        ctx.setLineDash([5, 0]);
         ctx.beginPath();
         ctx.moveTo(drawX, drawY);
-        
         // IMPORTANTE: Se input.aim.x/y estiverem zerados, a linha não aparece.
-        // Usamos input.lastAim como fallback de direção se necessário.
         const dirX = input.aim.x || input.lastAim.x;
         const dirY = input.aim.y || input.lastAim.y;
-        
-        ctx.lineTo(drawX + dirX * 60, drawY + dirY * 60); // Aumentamos o comprimento para 100
+        ctx.lineTo(drawX + dirX * 60, drawY + dirY * 60);
         ctx.stroke();
         ctx.restore();
     }
-
-
-    // --- 4. RENDER DO LOCK-ON GENÉRICO (Mira Automática) ---
     if (player.lockedTarget && !player.lockedTarget.dead && player.lockOnTimer > 0) {
         const target = player.lockedTarget;
         const targetDrawX = target.x - camera.x;
         const targetDrawY = target.y - camera.y;
-
         ctx.save();
         ctx.translate(targetDrawX, targetDrawY);
-        ctx.rotate(performance.now() * 0.003); 
-        
-        // Efeito de fade-out baseado no timer restante
+        ctx.rotate(performance.now() * 0.003);
         ctx.globalAlpha = Math.min(1, player.lockOnTimer * 2);
-        
         ctx.strokeStyle = "rgba(255, 50, 50, 0.9)";
         ctx.lineWidth = 2;
         ctx.setLineDash([8, 6]);
-        
         ctx.beginPath();
         const aimRadius = (target.radius || 20) + 10;
         ctx.arc(0, 0, aimRadius, 0, Math.PI * 2);
@@ -82,8 +46,6 @@ export function drawPlayer(player, ctx, camera) {
         ctx.restore();
         ctx.globalAlpha = 1.0;
     }
-
-    // --- 5. EFEITOS DE SINERGIA ---
     if (player.activeSynergies && player.activeSynergies.size > 0) {
         ctx.strokeStyle = "rgba(255, 255, 0, 0.5)";
         ctx.lineWidth = 3;
@@ -91,51 +53,34 @@ export function drawPlayer(player, ctx, camera) {
         ctx.arc(drawX, drawY, player.radius + 13, 0, Math.PI * 2);
         ctx.stroke();
     }
-
-    // --- 6. INTERFACE SOBRE O PLAYER (Vida e Munição) ---
     drawBars(player, ctx, drawX, drawY);
 }
-
-/**
- * Desenha os medidores de sobrevivência e combate acima da cabeça do jogador.
- */
 function drawBars(player, ctx, drawX, drawY) {
-    // Coordenadas negativas para posicionamento acima do player
     const textY = drawY - 48;
     const hpY = drawY - 42;
     const ammoY = drawY - 32;
-
     // 1. Texto de HP Atual (Ex: 150 / 200)
     ctx.fillStyle = "white";
     ctx.font = "bold 11px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`${Math.ceil(player.hp)} / ${player.maxHp}`, drawX, textY);
-
-    // 2. Barra de Vida (Fundo Vermelho, Frente Verde)
+    ctx.fillText(`${Math.ceil(player.hp)} / ${Math.floor(player.maxHp)}`, Math.floor(drawX), Math.floor(textY));
     const hpRatio = Math.max(0, player.hp / player.maxHp);
     ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
     ctx.fillRect(drawX - 25, hpY, 50, 6);
     ctx.fillStyle = "rgba(0, 255, 0, 0.9)";
     ctx.fillRect(drawX - 25, hpY, 50 * hpRatio, 6);
-
-    // 3. Slots de Munição (Interface de carga da arma ativa)
     const weapon = player.loadout ? player.loadout.getActiveWeapon() : null;
     if (weapon && weapon.maxSlots) {
         const totalWidth = 50;
         const slotWidth = (totalWidth - (weapon.maxSlots - 1)) / weapon.maxSlots;
         let startX = drawX - 25;
-
         for (let i = 0; i < weapon.maxSlots; i++) {
-            // Background do Slot
             ctx.fillStyle = "rgba(50, 50, 50, 0.8)";
             ctx.fillRect(startX, ammoY, slotWidth, 4);
-
             if (i < weapon.currentAmmo) {
-                // Slot com bala pronta (Ciano)
-                ctx.fillStyle = "rgba(0, 255, 255, 0.9)"; 
+                ctx.fillStyle = "rgba(0, 255, 255, 0.9)";
                 ctx.fillRect(startX, ammoY, slotWidth, 4);
             } else if (i === weapon.currentAmmo) {
-                // Animação visual da recarga do slot atual
                 const reloadRatio = (weapon.reloadTimer || 0) / (weapon.reloadTime || 1);
                 ctx.fillStyle = "rgba(200, 200, 200, 0.9)";
                 ctx.fillRect(startX, ammoY, slotWidth * reloadRatio, 4);
@@ -144,4 +89,3 @@ function drawBars(player, ctx, drawX, drawY) {
         }
     }
 }
-

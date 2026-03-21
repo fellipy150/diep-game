@@ -17,9 +17,9 @@ export function drawWeaponSlots(ctx, player, canvas) {
         if (entry) {
             ctx.fillStyle = "white";
             ctx.textAlign = "center";
-            ctx.fillText(entry.weapon.name, x + slotWidth/2, startY + slotWidth/2);
+            ctx.fillText(entry.weapon.name, Math.floor(x + slotWidth/2), Math.floor(startY + slotWidth/2));
             ctx.font = "10px sans-serif";
-            ctx.fillText(`(${entry.slotCost})`, x + slotWidth - 10, startY + slotWidth - 5);
+            ctx.fillText(`(${entry.slotCost})`, Math.floor(x + slotWidth - 10), Math.floor(startY + slotWidth - 5));
         }
     }
 }

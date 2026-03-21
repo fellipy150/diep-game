@@ -1,3 +1,5 @@
+import { MathUtils } from "../../core/math.js";
+import { ProjectilePool } from "../projectiles/ProjectilePool.js";
 import { handleShooting, applyDamage } from "./Combat.js";
 import { updateStatusEffects, StatSheet } from './status.js';
 import { gainXp, applyUpgrade } from "./progress.js";
@@ -17,8 +19,6 @@ export class Player {
         this.baseAcceleration = 1400;
         this.friction = 0.88;
         this.visualRotation = 0;
-
-        // --- SISTEMA DE STATUS ---
         this.stats = new StatSheet({
             maxHp: 200,
             speed: 1.0,
@@ -27,35 +27,28 @@ export class Player {
             bulletSpeed: 500,
             multiShot: 1
         });
-
         this.hp = this.stats.get('maxHp');
         this.activeEffects = [];
         this.currentBulletType = 'normal';
         this.bullets = [];
         this.lockedTarget = null;
         this.lockOnTimer = 0;
-
-        // --- PROGRESSÃO ---
         this.level = 1;
         this.xp = 0;
         this.xpNeeded = 100;
         this.onLevelUp = null;
         this.upgradeCounts = {};
         this.activeSynergies = new Set();
-
-        // --- EQUIPAMENTO ---
         this.loadout = new WeaponLoadout(this, 2);
         const startingGun = createStandardGun();
         this.loadout.addWeapon(startingGun, 1);
     }
-
     get damage() { return this.stats.get('damage'); }
     get fireRate() { return this.stats.get('fireRate'); }
     get speed() { return this.stats.get('speed'); }
     get maxHp() { return this.stats.get('maxHp'); }
     get bulletSpeed() { return this.stats.get('bulletSpeed'); }
     get multiShot() { return this.stats.get('multiShot'); }
-
     findNearestTarget(context) {
         let nearest = null;
         let minDistSq = Infinity;
@@ -75,12 +68,8 @@ export class Player {
         }
         return nearest;
     }
-
     update(dt, gameState) {
-        // 1. Buffs e Debuffs
         updateStatusEffects(this, dt);
-
-        // 2. MOVIMENTAÇÃO
         let dirX = input.move.x;
         let dirY = input.move.y;
         const mag = Math.sqrt(dirX * dirX + dirY * dirY);
@@ -88,52 +77,39 @@ export class Player {
             dirX /= mag;
             dirY /= mag;
         }
-
         const acc = this.baseAcceleration * this.speed;
         this.velX = (this.velX + dirX * acc * dt) * this.friction;
         this.velY = (this.velY + dirY * acc * dt) * this.friction;
         this.x += this.velX * dt;
         this.y += this.velY * dt;
-
-        // 🔴 NOVA LÓGICA DE ROTAÇÃO (Movimento):
-        // Se a velocidade for relevante, interpola a rotação para a direção do movimento
         if (Math.hypot(this.velX, this.velY) > 10) {
             const moveAngle = Math.atan2(this.velY, this.velX);
-            
             let diff = moveAngle - this.visualRotation;
-            // Normalização do ângulo para evitar giros de 360º desnecessários
             while (diff < -Math.PI) diff += Math.PI * 2;
             while (diff > Math.PI) diff -= Math.PI * 2;
-            
-            this.visualRotation += diff * 0.15; 
+            this.visualRotation += diff * 0.15;
         }
-
-        // 3. Update de Projéteis Ativos (Legado)
-        for (const b of this.bullets) {
-            if (!b.dead) b.update(dt);
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const b = this.bullets[i];
+            if (b.dead) {
+                ProjectilePool.release(b);
+                this.bullets.splice(i, 1);
+            } else {
+                b.update(dt);
+            }
         }
-
-        // 4. Timer do Lock-On Visual
         if (this.lockOnTimer > 0) {
             this.lockOnTimer -= dt;
             if (this.lockOnTimer <= 0) this.lockedTarget = null;
         }
-
         const context = new GameContext(gameState);
-
-        // 5. ATUALIZAÇÃO DO LOADOUT
         this.loadout.update(dt, context);
-
-        // 6. LÓGICA DE SWAP
         if (input.fireSwap) {
             this.loadout.swap();
             input.fireSwap = false;
         }
-
-        // 7. LÓGICA DE DISPARO E SNAP DE ROTAÇÃO
         if (input.fireReleased) {
             let aimDir = { x: input.lastAim.x, y: input.lastAim.y };
-
             if (input.isTap) {
                 const target = this.findNearestTarget(context);
                 if (target) {
@@ -141,42 +117,33 @@ export class Player {
                     const dy = target.y - this.y;
                     const dist = Math.hypot(dx, dy);
                     aimDir = { x: dx / dist, y: dy / dist };
-                    
                     this.lockedTarget = target;
                     this.lockOnTimer = 1.0;
                     input.lastAim = { ...aimDir };
                 }
             }
-
             const activeWeapon = this.loadout.getActiveWeapon();
             if (activeWeapon) {
                 const fired = activeWeapon.executeFire(context, aimDir);
                 if (fired) {
-                    // 🔴 SNAP DE TIRO: Olha instantaneamente para a direção do projétil
                     this.visualRotation = Math.atan2(aimDir.y, aimDir.x);
-                    
                     if (this.onShootEffect) {
                         this.onShootEffect(this);
                     }
                 }
             }
-            
             input.fireReleased = false;
         }
     }
-
     draw(ctx, camera) {
         drawPlayer(this, ctx, camera);
     }
-
     takeDamage(amount) {
         applyDamage(this, amount);
     }
-
     addXp(amount) {
         gainXp(this, amount);
     }
-
     giveUpgrade(upgradeId) {
         return applyUpgrade(this, upgradeId);
     }

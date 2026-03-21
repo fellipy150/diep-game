@@ -10,20 +10,22 @@ export function desenharGameOver() {
     ctx.fillStyle = "red";
     ctx.font = "bold 40px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", cx, cy - 20);
+    ctx.fillText("GAME OVER", Math.floor(cx), Math.floor(cy - 20));
     ctx.fillStyle = "white";
     ctx.font = "20px sans-serif";
-    ctx.fillText(`Você alcançou o Nível ${player?.level || 1}`, cx, cy + 30);
-    ctx.fillText("Recarregue a página para tentar novamente", cx, cy + 70);
+    ctx.fillText(`Você alcançou o Nível ${player?.level || 1}`, Math.floor(cx), Math.floor(cy + 30));
+    ctx.fillText("Recarregue a página para tentar novamente", Math.floor(cx), Math.floor(cy + 70));
 }
 export function mostrarMenuLevelUp(choices) {
-    console.log("🕵️ [DEBUG 5] Menu abriu recebendo:", choices);
+    if (document.getElementById('level-up-overlay')) return;
+    console.log("✨ Menu de Level Up aberto:", choices);
     if (!choices || choices.length === 0) {
-        console.error("❌ O menu recebeu uma lista vazia de escolhas! Abortando renderização.");
+        console.warn("⚠️ Nenhuma escolha disponível. Despausando jogo.");
         gameState.isPaused = false;
         return;
     }
     const overlay = document.createElement('div');
+    overlay.id = 'level-up-overlay';
     Object.assign(overlay.style, {
         position: 'fixed',
         top: '0',
@@ -39,10 +41,11 @@ export function mostrarMenuLevelUp(choices) {
         color: 'white',
         fontFamily: 'sans-serif'
     });
+    const fragmento = document.createDocumentFragment();
     const titulo = document.createElement('h1');
     titulo.innerText = `Nível ${gameState.player.level}! Escolha um Upgrade:`;
     titulo.style.marginBottom = '20px';
-    overlay.appendChild(titulo);
+    fragmento.appendChild(titulo);
     choices.forEach(upgrade => {
         const btn = document.createElement('button');
         Object.assign(btn.style, {
@@ -54,24 +57,27 @@ export function mostrarMenuLevelUp(choices) {
             borderRadius: '4px',
             width: '300px',
             cursor: 'pointer',
-            textAlign: 'left'
+            textAlign: 'left',
+            transition: 'background-color 0.2s'
         });
+        btn.onmouseenter = () => btn.style.backgroundColor = '#222';
+        btn.onmouseleave = () => btn.style.backgroundColor = '#111';
         btn.innerHTML = `<strong>${upgrade.name}</strong><br><small style="color:#aaa">${upgrade.description}</small>`;
-        btn.addEventListener('pointerdown', (e) => {
+        btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            e.preventDefault();
             selecionarUpgrade(upgrade.id, overlay);
         });
-        overlay.appendChild(btn);
+        fragmento.appendChild(btn);
     });
+    overlay.appendChild(fragmento);
     document.body.appendChild(overlay);
 }
 function selecionarUpgrade(upgradeId, overlay) {
     if (gameState.player) {
         gameState.player.applyUpgrade(upgradeId);
     }
-    if (overlay?.parentNode) {
-        document.body.removeChild(overlay);
+    if (overlay && overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
     }
     gameState.isPaused = false;
 }

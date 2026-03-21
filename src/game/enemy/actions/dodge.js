@@ -1,3 +1,5 @@
+import { ProjectilePool } from "../../projectiles/ProjectilePool.js";
+
 export const dodge = (enemy, threatBullets) => {
     if (!threatBullets || threatBullets.length === 0) return null;
     for (const b of threatBullets) {

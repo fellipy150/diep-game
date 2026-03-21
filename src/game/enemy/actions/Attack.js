@@ -1,3 +1,4 @@
+import { ProjectilePool } from "../../projectiles/ProjectilePool.js";
 import { Bullet, LobbedProjectile } from "../../projectiles/index.js";
 import { getSmartAim } from "../../../core/mathUtils.js";
 
@@ -18,7 +19,7 @@ export const Attack = (enemy) => {
     if (isLobbed) {
         enemy.bullets.push(new LobbedProjectile(enemy.x, enemy.y, aim.targetX, aim.targetY, enemy.bulletType, 25));
     } else {
-        const b = new Bullet(enemy.x, enemy.y, aim.x, aim.y, bulletSpeed, 25, 'enemy', enemy.bulletType, target);
+        const b = ProjectilePool.get(enemy.x, enemy.y, aim.x, aim.y, bulletSpeed, 25, 'enemy', enemy.bulletType, target);
         b.sender = enemy;
         enemy.bullets.push(b);
     }
