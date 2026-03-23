@@ -28,7 +28,7 @@ export class Bullet {
         ctx.arc(drawX, drawY, this.radius, 0, Math.PI * 2);
         ctx.fill();
     }
-    onHit(target, context) {
+    onHit(_target, _context) {
         if (this.pierceCount <= 0) {
             this.dead = true;
         } else {
@@ -36,7 +36,7 @@ export class Bullet {
         }
         for (const effect of this.effects) {
             if (effect.onHit) {
-                const handled = effect.onHit(this, target, context);
+                const handled = effect.onHit(this, _target, _context);
                 if (handled) break;
             }
         }

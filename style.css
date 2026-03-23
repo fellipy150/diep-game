@@ -11,28 +11,194 @@ html, body {
     touch-action: none; 
     user-select: none;
     -webkit-user-select: none;
+    font-family: sans-serif;
 }
 
-#gameCanvas {
+canvas#game {
     display: block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
 }
 
-/*body {
-    margin: 0;
-    padding: 0;
+/* ==========================================
+   DOM HUD (Nível, XP, Hotbar)
+   ========================================== */
+#game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Deixa o toque passar para o Canvas/Joysticks por padrão */
+    z-index: 50; /* Fica ABAIXO dos joysticks (100) e ACIMA do Canvas (1) */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Empurra a HUD para baixo */
+}
+
+#bottom-hud {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 25px;
+    pointer-events: none;
+}
+
+#level-text {
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 6px;
+    text-shadow: 1px 1px 3px black;
+    letter-spacing: 1px;
+}
+
+#xp-container {
+    width: 300px;
+    max-width: 80vw;
+    height: 12px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 2px solid #444;
+    border-radius: 6px;
+    margin-bottom: 12px;
     overflow: hidden;
-    background: #111;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
-canvas {
-    display: block;
-    width: 100vw;
-    height: 100vh;
+#xp-bar {
+    width: 0%;
+    height: 100%;
+    background-color: #0ff;
+    box-shadow: 0 0 10px #0ff;
+    transition: width 0.2s ease-out; /* Animação suave ao ganhar XP */
 }
-*/
+
+#hotbar-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 15px;
+    border-radius: 12px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: auto; /* IMPORTANTE: Ativa o clique APENAS na hotbar */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hotbar-slots {
+    display: flex;
+    gap: 8px;
+}
+
+/* Classes dinâmicas injetadas pelo JS nos slots */
+.hotbar-slot {
+    width: 45px;
+    height: 45px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid #444;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.1s;
+}
+
+.hotbar-slot.active {
+    background-color: rgba(0, 255, 255, 0.2);
+    border-color: #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+    transform: scale(1.05);
+}
+
+.hotbar-slot small {
+    font-size: 10px;
+    color: #aaa;
+    margin-top: 2px;
+}
+
+#weight-display {
+    color: #aaa;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+}
+
+/* ==========================================
+   LEVEL UP MODAL (GLASSMORPHISM)
+   ========================================== */
+#level-up-modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 25, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 150; /* Fica acima de TUDO, inclusive joysticks, para pausar o jogo */
+    pointer-events: auto;
+}
+
+#level-up-modal.hidden {
+    display: none !important;
+}
+
+#level-up-modal h2 {
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: #0ff;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+    margin-bottom: 20px;
+}
+
+#upgrade-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 90%;
+    max-width: 400px;
+}
+
+#upgrade-choices button {
+    background: rgba(0, 255, 255, 0.05);
+    border: 1px solid #0ff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    color: #0ff;
+    padding: 15px;
+    border-radius: 6px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#upgrade-choices button:active {
+    background: rgba(0, 255, 255, 0.3);
+    transform: scale(0.95);
+}
+
+#upgrade-choices button strong {
+    font-size: 16px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+#upgrade-choices button small {
+    color: #aaa;
+    font-size: 12px;
+}
 
 /* ==========================================
    JOYSTICKS (CONTROLES TOUCH)
@@ -46,7 +212,7 @@ canvas {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-sizing: border-box;
-    z-index: 10;
+    z-index: 100; /* 🔴 O SEGREDO: Elevado para passar por cima da HUD estática (z-index 50) */
 }
 
 #joystick-move { 
@@ -74,34 +240,3 @@ canvas {
     background: rgba(255, 50, 50, 0.7);
 }
 
-/* ==========================================
-   INTERFACE SYSTEM (GLASSMORPHISM)
-   ========================================== */
-#levelup-overlay {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* Suporte extra para Safari/iOS */
-    background: rgba(10, 10, 25, 0.85) !important;
-    border: 1px solid rgba(0, 255, 255, 0.2);
-}
-
-#levelup-overlay h1 {
-    font-family: 'Orbitron', sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 4px;
-    color: #0ff;
-    text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
-}
-
-#levelup-overlay button {
-    background: rgba(0, 255, 255, 0.05) !important;
-    border: 1px solid #0ff !important;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-    transition: all 0.2s ease;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-
-#levelup-overlay button:active {
-    background: rgba(0, 255, 255, 0.3) !important;
-    transform: scale(0.95);
-}

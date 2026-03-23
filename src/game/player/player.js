@@ -1,13 +1,15 @@
 import { MathUtils } from "../../core/math.js";
+import { applyDamage } from "./Combat.js";
 import { ProjectilePool } from "../projectiles/ProjectilePool.js";
-import { handleShooting, applyDamage } from "./Combat.js";
 import { updateStatusEffects, StatSheet } from './status.js';
 import { gainXp, applyUpgrade } from "./progress.js";
 import { drawPlayer } from "./render.js";
 import { input } from "../../core/input/index.js";
 import { createStandardGun } from "../weapon/gun/types/standart-gun.js";
 import { GameContext } from "../weapon/base/GameContext.js";
-import { WeaponLoadout } from "../weapon/base/WeaponLoadout.js";
+import { Inventory } from "../weapon/base/Inventory.js";
+import { DOMManager } from "../ui/DOMManager.js";
+import { fastRemove } from "../state.js"; // Garanta que o caminho está correto
 
 export class Player {
     constructor(x, y) {
@@ -19,8 +21,7 @@ export class Player {
         this.baseAcceleration = 1400;
         this.friction = 0.88;
         this.visualRotation = 0;
-
-        // --- SISTEMA DE STATUS ---
+        
         this.stats = new StatSheet({
             maxHp: 200,
             speed: 1.0,
@@ -35,8 +36,7 @@ export class Player {
         this.bullets = [];
         this.lockedTarget = null;
         this.lockOnTimer = 0;
-
-        // --- PROGRESSÃO ---
+        
         this.level = 1;
         this.xp = 0;
         this.xpNeeded = 100;
@@ -44,20 +44,21 @@ export class Player {
         this.upgradeCounts = {};
         this.activeSynergies = new Set();
 
-        // --- EQUIPAMENTO ---
-        this.loadout = new WeaponLoadout(this, 2);
+        // Inicializa Inventário com Peso
+        this.inventory = new Inventory(this, 1);
         const startingGun = createStandardGun();
-        this.loadout.addWeapon(startingGun, 1);
+        startingGun.weight = 1; 
+        this.inventory.addWeapon(startingGun);
 
-        
-        // 🟢 COMO CORRIGIR (Passe o gameState como um objeto simulado):
-        // O gameState só passa a existir quando o jogo roda, 
-        // então iniciamos o cache com um estado limpo.
-        this._cachedContext = new GameContext({ player: this, enemies: [], hazards: [] });
-        
+        // Contexto persistente para evitar GC
+        this._cachedContext = new GameContext({ 
+            player: this, 
+            enemies: [], 
+            hazards: [] 
+        });
     }
 
-    // --- API DE STATUS ---
+    // Getters de Stats
     get damage() { return this.stats.get('damage'); }
     get fireRate() { return this.stats.get('fireRate'); }
     get speed() { return this.stats.get('speed'); }
@@ -65,58 +66,29 @@ export class Player {
     get bulletSpeed() { return this.stats.get('bulletSpeed'); }
     get multiShot() { return this.stats.get('multiShot'); }
 
-    /**
-     * Busca o alvo mais próximo sem criar novos arrays (Zero Alocação)
-     * e usando distância ao quadrado para máxima performance.
-     */
     findNearestTarget(context) {
         let nearest = null;
         let minDistSq = Infinity;
-
-        // 1. Processa Inimigos (Loop direto no array original)
         const enemies = context.enemies;
         if (enemies) {
             for (let i = 0; i < enemies.length; i++) {
                 const t = enemies[i];
                 if (t.dead) continue;
-
                 const distSq = MathUtils.distSq(this.x, this.y, t.x, t.y);
-                if (distSq < minDistSq) {
-                    minDistSq = distSq;
-                    nearest = t;
-                }
+                if (distSq < minDistSq) { minDistSq = distSq; nearest = t; }
             }
         }
-
-        // 2. Processa Hazards (Se houver perigos que podem ser alvos)
-        const hazards = context.hazards;
-        if (hazards) {
-            for (let i = 0; i < hazards.length; i++) {
-                const h = hazards[i];
-                if (h.dead || !h.isTargetable) continue;
-
-                const distSq = MathUtils.distSq(this.x, this.y, h.x, h.y);
-                if (distSq < minDistSq) {
-                    minDistSq = distSq;
-                    nearest = h;
-                }
-            }
-        }
-
         return nearest;
     }
 
     update(dt, gameState) {
         updateStatusEffects(this, dt);
 
-        // Movimentação
-        let dirX = input.move.x;
-        let dirY = input.move.y;
+        // --- MOVIMENTAÇÃO ---
+        let dirX = input.move.x || 0;
+        let dirY = input.move.y || 0;
         const mag = Math.sqrt(dirX * dirX + dirY * dirY);
-        if (mag > 1) {
-            dirX /= mag;
-            dirY /= mag;
-        }
+        if (mag > 1) { dirX /= mag; dirY /= mag; }
 
         const acc = this.baseAcceleration * this.speed;
         this.velX = (this.velX + dirX * acc * dt) * this.friction;
@@ -124,7 +96,7 @@ export class Player {
         this.x += this.velX * dt;
         this.y += this.velY * dt;
 
-        // Rotação Visual
+        // Rotação Visual (Movimento)
         if (Math.hypot(this.velX, this.velY) > 10) {
             const moveAngle = Math.atan2(this.velY, this.velX);
             let diff = moveAngle - this.visualRotation;
@@ -133,12 +105,12 @@ export class Player {
             this.visualRotation += diff * 0.15;
         }
 
-        // Limpeza de Projéteis (Reaproveitamento de memória)
+        // --- LIMPEZA DE BALAS (FastRemove) ---
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const b = this.bullets[i];
             if (b.dead) {
                 ProjectilePool.release(b);
-                this.bullets.splice(i, 1);
+                fastRemove(this.bullets, i);
             } else {
                 b.update(dt);
             }
@@ -149,39 +121,67 @@ export class Player {
             if (this.lockOnTimer <= 0) this.lockedTarget = null;
         }
 
-        // Atualização do Contexto Reutilizável
+        // --- ATUALIZAÇÃO DO CONTEXTO ---
         this._cachedContext.enemies = gameState.enemies;
         this._cachedContext.hazards = gameState.hazards;
         this._cachedContext.player = this;
+        this._cachedContext.bullets = this.bullets; // Vital para as armas spawnarem balas
         this._cachedContext.dt = dt;
+        
+        // Atualiza Cooldowns das Armas
+        this.inventory.update(dt, this._cachedContext);
 
-        this.loadout.update(dt, this._cachedContext);
+        // --- SISTEMA DE TIRO (REVISADO) ---
+        const activeWeapon = this.inventory.getActiveWeapon();
+        
+        if (activeWeapon) {
+            // Usamos a flag isAiming do nosso InputManager
+            const isJoyAiming = input.isAiming;
+            
+            if (isJoyAiming || this.lockedTarget) {
+                let aimDir = null;
 
+                if (isJoyAiming) {
+                    // Prioridade 1: Joystick (usa o valor atual do direcional)
+                    aimDir = { x: input.aim.x, y: input.aim.y };
+                } else if (this.lockedTarget) {
+                    // Prioridade 2: Auto-mira no alvo travado
+                    const dir = MathUtils.getDir(this.x, this.y, this.lockedTarget.x, this.lockedTarget.y);
+                    aimDir = { x: dir.x, y: dir.y };
+                    if (this.lockedTarget.dead) this.lockedTarget = null;
+                }
+
+                if (aimDir && (aimDir.x !== 0 || aimDir.y !== 0)) {
+                    // O contexto precisa ter a referência do player atualizada
+                    const fired = activeWeapon.executeFire(this._cachedContext, aimDir);
+                    if (fired) {
+                        this.visualRotation = Math.atan2(aimDir.y, aimDir.x);
+                        if (this.onShootEffect) this.onShootEffect(this);
+                    }
+                }
+            }
+        } else {
+            if (gameState.frameCount && gameState.frameCount % 60 === 0) console.warn("Aviso: Nenhuma arma ativa no inventário!");
+        }
+
+        // --- TROCA DE ARMA (Input Físico) ---
         if (input.fireSwap) {
-            this.loadout.swap();
+            if (this.inventory.weapons.length > 1) {
+                const nextIndex = (this.inventory.activeIndex + 1) % this.inventory.weapons.length;
+                this.inventory.equip(nextIndex);
+                if (DOMManager) DOMManager.updateHotbar(this.inventory);
+            }
             input.fireSwap = false;
         }
 
+        // --- INPUT DE TAP (Travar Alvo) ---
         if (input.fireReleased) {
-            let aimDir = { x: input.lastAim.x, y: input.lastAim.y };
-            
             if (input.isTap) {
                 const target = this.findNearestTarget(this._cachedContext);
                 if (target) {
-                    const dir = MathUtils.getDir(this.x, this.y, target.x, target.y);
-                    aimDir = { x: dir.x, y: dir.y };
                     this.lockedTarget = target;
-                    this.lockOnTimer = 1.0;
-                    input.lastAim = { ...aimDir };
-                }
-            }
-
-            const activeWeapon = this.loadout.getActiveWeapon();
-            if (activeWeapon) {
-                const fired = activeWeapon.executeFire(this._cachedContext, aimDir);
-                if (fired) {
-                    this.visualRotation = Math.atan2(aimDir.y, aimDir.x);
-                    if (this.onShootEffect) this.onShootEffect(this);
+                    this.lockOnTimer = 2.0;
+                    console.log("Alvo travado:", target.type);
                 }
             }
             input.fireReleased = false;
@@ -191,17 +191,10 @@ export class Player {
     draw(ctx, camera) {
         drawPlayer(this, ctx, camera);
     }
-
-    takeDamage(amount) {
-        applyDamage(this, amount);
-    }
-
-    addXp(amount) {
-        gainXp(this, amount);
-    }
-
-    giveUpgrade(upgradeId) {
-        return applyUpgrade(this, upgradeId);
-    }
+    
+    takeDamage(amount) { applyDamage(this, amount); }
+    addXp(amount) { gainXp(this, amount); }
+    giveUpgrade(upgradeId) { return applyUpgrade(this, upgradeId); }
 }
+
 

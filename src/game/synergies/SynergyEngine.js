@@ -1,4 +1,5 @@
 import { SynergyRegistry } from './SynergyRegistry.js';
+import { camera } from '../renderer.js';
 import { showSynergyToast } from '../ui/SynergyToast.js';
 
 export const SynergyEngine = {

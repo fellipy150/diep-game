@@ -1,6 +1,6 @@
 import { ProjectilePool } from "../../projectiles/ProjectilePool.js";
+import { LobbedProjectile } from "../../projectiles/index.js";
 import { WeaponBase } from "../base/WeaponBase.js";
-import { Bullet, LobbedProjectile } from "../../projectiles/index.js";
 import { gameData } from "../../../config/configManager.js";
 import { SynergyRegistry } from "../../synergies/SynergyRegistry.js";
 
@@ -16,7 +16,7 @@ export class GunWeapon extends WeaponBase {
         this.bulletColor = config.bulletColor || '#00ffff';
         this.bulletType = config.bulletType || 'normal';
     }
-    update(dt, context) {
+    update(dt, _context) {
         if (this.currentAmmo < this.maxSlots) {
             this.reloadTimer += dt;
             if (this.reloadTimer >= this.reloadTime) {

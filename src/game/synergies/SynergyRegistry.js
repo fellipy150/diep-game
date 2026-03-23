@@ -1,8 +1,6 @@
-import { BulletEffects } from '../weapon/gun/BulletEffects.js';
-
 const GhostPenetrateEffect = {
     id: 'ghost_penetrate',
-    onHit: (bullet, target, context) => {
+    onHit: (bullet, _target, _context) => {
         if (bullet.pierceCount > 0) {
             bullet.pierceCount--;
             bullet.damage *= 0.85;

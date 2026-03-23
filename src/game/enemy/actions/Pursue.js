@@ -1,5 +1,3 @@
-import { MathUtils } from "../../../core/math.js";
-
 export const Pursue = (enemy, target) => {
     const dx = target.x - enemy.x;
     const dy = target.y - enemy.y;

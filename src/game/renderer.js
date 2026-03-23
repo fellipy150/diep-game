@@ -1,5 +1,3 @@
-import { renderHUD } from './ui/HUD/index.js';
-
 export const CAMERA_CONFIG = {
     BASE_FOV: 750,
     START_FOV: 2500,
@@ -101,7 +99,7 @@ function renderVFX(ctx, damageNumbers, logicalWidth, logicalHeight) {
     if (!damageNumbers || damageNumbers.length === 0) return;
     for (const color in vfxBatches) {
         for (let a = 1; a <= 10; a++) {
-            vfxBatches[color][a].length = 0;
+            if (vfxBatches[color][a]) vfxBatches[color][a].length = 0;
         }
     }
     for (let i = 0; i < damageNumbers.length; i++) {
@@ -122,7 +120,7 @@ function renderVFX(ctx, damageNumbers, logicalWidth, logicalHeight) {
         const alphaGroups = vfxBatches[color];
         for (let a = 10; a > 0; a--) {
             const group = alphaGroups[a];
-            if (group.length === 0) continue;
+            if (!group || group.length === 0) continue;
             ctx.globalAlpha = a / 10;
             for (let i = 0; i < group.length; i++) {
                 const n = group[i];
@@ -186,5 +184,4 @@ export function renderGame(ctx, canvas, gameState) {
     if (player) player.draw(ctx, camera);
     if (damageNumbers) renderVFX(ctx, damageNumbers, dim.width, dim.height);
     ctx.restore();
-    renderHUD(ctx, canvas, gameState);
 }

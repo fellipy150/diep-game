@@ -1,4 +1,4 @@
-export function drawPlayerStatus(ctx, player, canvas) {
+export function drawPlayerStatus(ctx, player, _canvas) {
     const startX = 20;
     const startY = 30;
     ctx.fillStyle = "white";

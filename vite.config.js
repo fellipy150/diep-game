@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
-
     base: './',
     
     server: {
@@ -12,6 +12,14 @@ export default defineConfig({
     build: {
         target: 'esnext',
         outDir: 'dist',
-        minify: false
+        minify: false,
+        rollupOptions: {
+            plugins: [
+                visualizer({
+                    open: true,
+                    filename: 'stats.html'
+                })
+            ]
+        }
     }
 });

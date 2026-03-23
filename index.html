@@ -8,8 +8,36 @@
 </head>
 <body>
     <canvas id="game"></canvas>
+    
+    <!-- 🔴 Nova Camada de UI (DOM HUD): Acelerada por GPU e fora do Canvas -->
+    <div id="game-ui">
+        <!-- Modal de Level Up (Oculto por padrão via classe 'hidden') -->
+        <div id="level-up-modal" class="hidden">
+            <h2>Level Up!</h2>
+            <div id="upgrade-choices"></div>
+        </div>
+
+        <!-- HUD Inferior: Nível, XP, Hotbar e Peso -->
+        <div id="bottom-hud">
+            <div id="level-text">Nível 1</div>
+            
+            <div id="xp-container">
+                <div id="xp-bar"></div>
+            </div>
+            
+            <div id="hotbar-wrapper">
+                <div id="hotbar" class="hotbar-slots">
+                    <!-- Os slots das armas serão injetados aqui pelo JavaScript -->
+                </div>
+                <div id="weight-display">
+                    ⚖️ <span id="current-weight">0</span>/<span id="max-weight">1</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Joystick Esquerdo: Movimento -->
+    <!-- Mantidos abaixo do game-ui para que o z-index natural os renderize por cima caso se cruzem -->
     <div id="joystick-move" class="joystick-base">
         <div id="stick-move" class="stick"></div>
     </div>
@@ -22,4 +50,5 @@
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
+
 

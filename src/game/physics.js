@@ -1,5 +1,4 @@
 import { MathUtils } from "../core/math.js";
-import { ProjectilePool } from "./projectiles/ProjectilePool.js";
 import { gameState, criarNumeroDano } from "./state.js";
 import { camera } from "./renderer.js";
 import { MeleeAction } from "./enemy/actions/meleeAction.js";

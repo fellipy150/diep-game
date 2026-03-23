@@ -1,5 +1,5 @@
 import { ProjectilePool } from "../../projectiles/ProjectilePool.js";
-import { Bullet, LobbedProjectile } from "../../projectiles/index.js";
+import { LobbedProjectile } from "../../projectiles/index.js";
 import { getSmartAim } from "../../../core/mathUtils.js";
 
 export const Attack = (enemy) => {

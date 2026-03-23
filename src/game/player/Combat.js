@@ -1,7 +1,7 @@
 import { ProjectilePool } from "../projectiles/ProjectilePool.js";
+import { LobbedProjectile } from "../projectiles/index.js";
 import { input } from "../../core/input/index.js";
 import { gameData } from "../../config/configManager.js";
-import { Bullet, LobbedProjectile } from "../projectiles/index.js";
 
 export function handleShooting(player, dt, gameState) {
     const fireRate = player.stats.get('fireRate');
