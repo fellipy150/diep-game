@@ -79,10 +79,11 @@ canvas#game {
 
 #hotbar-wrapper {
     display: flex;
-    align-items: center;
-    gap: 15px;
+    align-items: flex-end; /* Alinha a barra de peso com a base da hotbar */
+    gap: 10px;
+    margin-top: 5px;
     background: rgba(0, 0, 0, 0.4);
-    padding: 8px 15px;
+    padding: 3px 3px;
     border-radius: 12px;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
@@ -101,7 +102,7 @@ canvas#game {
     height: 45px;
     background-color: rgba(0, 0, 0, 0.7);
     border: 2px solid #444;
-    border-radius: 6px;
+    border-radius: 3px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -127,12 +128,46 @@ canvas#game {
     margin-top: 2px;
 }
 
-#weight-display {
-    color: #aaa;
-    font-size: 14px;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px black;
+/* Prepara o slot de imagem para o futuro PNG/SVG */
+.slot-icon {
+    width: 80%;
+    height: 80%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
+
+/* 🔴 A Barra Vertical Laranja/Cinza (Inventário de Peso) */
+#weight-bar-container {
+    width: 3px;
+    height: 50px; /* Mesma altura do slot da hotbar */
+    display: flex;
+    flex-direction: column;
+    gap: 3px; /* A "divisão" entre os espaços */
+    background: transparent;
+}
+
+
+
+.weight-segment {
+    flex: 1; 
+    background-color: #333; /* 🟢 Cinza Escuro (Espaço Vazio / Livre) */
+    border: 1px solid #555; /* Bordinha para enxergar o espaço vazio */
+    border-radius: 2px;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.weight-segment.used {
+    background-color: #ff8c00; /* 🔴 Laranja Vivo (Espaço Ocupado / Preenchido) */
+    border: 1px solid #ffa500;
+    box-shadow: 0 0 5px rgba(255, 140, 0, 0.6); /* Brilhozinho pra destacar */
+}
+
+
+
 
 /* ==========================================
    LEVEL UP MODAL (GLASSMORPHISM)
@@ -212,7 +247,7 @@ canvas#game {
     background: rgba(255, 255, 255, 0.1);
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-sizing: border-box;
-    z-index: 100; /* 🔴 O SEGREDO: Elevado para passar por cima da HUD estática (z-index 50) */
+    z-index: 100; /* Elevado para passar por cima da HUD estática (z-index 50) */
 }
 
 #joystick-move { 
@@ -239,4 +274,5 @@ canvas#game {
 #joystick-aim .stick {
     background: rgba(255, 50, 50, 0.7);
 }
+
 
