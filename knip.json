@@ -6,12 +6,19 @@
     "src/game/enemy/types/**/*.js",
     "src/game/upgrades/types/**/*.js"
   ],
-
   "project": [
     "src/**/*.js"
   ],
   "ignore": [
     "vite.config.js",
     "node_modules/**"
+  ],
+  "ignoreDependencies": [
+    "eslint-formatter-compact",
+    "eslint-formatter-unix",
+    "eslint-plugin-unused-imports"
+  ],
+  "ignoreBinaries": [
+    "sed"
   ]
 }

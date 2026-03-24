@@ -4,11 +4,11 @@ import { camera } from "./renderer.js";
 import { MeleeAction } from "./enemy/actions/meleeAction.js";
 import { gameData } from "../config/configManager.js";
 
-export const verificarColisao = (o1, o2) => {
+const verificarColisao = (o1, o2) => {
     const rSum = (o1.radius || 10) + (o2.radius || 10);
     return MathUtils.distSq(o1.x, o1.y, o2.x, o2.y) < (rSum * rSum);
 };
-export const aplicarEfeitoDeStatus = (entidade, tipo, duracao = 2.0) => {
+const aplicarEfeitoDeStatus = (entidade, tipo, duracao = 2.0) => {
     if (tipo === 'cola' || tipo === 'glue' || tipo === 'stun') {
         if (typeof entidade.addStatusEffect === 'function') {
             entidade.addStatusEffect(tipo, duracao);

@@ -1,4 +1,4 @@
-export const CAMERA_CONFIG = {
+const CAMERA_CONFIG = {
     BASE_FOV: 750,
     START_FOV: 2500,
     ZOOM_SPEED: 0.04,

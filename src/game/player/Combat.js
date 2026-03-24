@@ -3,20 +3,6 @@ import { LobbedProjectile } from "../projectiles/index.js";
 import { input } from "../../core/input/index.js";
 import { gameData } from "../../config/configManager.js";
 
-export function handleShooting(player, dt, gameState) {
-    const fireRate = player.stats.get('fireRate');
-    const damage = player.stats.get('damage');
-    const bulletSpeed = player.stats.get('bulletSpeed');
-    const multishot = player.stats.get('multishot') || player.multiShot || 1;
-    if (player.shootTimer > 0) {
-        player.shootTimer -= dt;
-    }
-    if (input.isShooting && player.shootTimer <= 0) {
-        executeShoot(player, gameState, damage, bulletSpeed, multishot);
-        player.shootTimer = fireRate;
-        if (player.onShootEffect) player.onShootEffect(player);
-    }
-}
 function executeShoot(player, gameState, damage, bulletSpeed, multishot) {
     const config = (gameData.bullets && gameData.bullets[player.currentBulletType])
                    || { multishotScale: 1, type: 'normal' };
