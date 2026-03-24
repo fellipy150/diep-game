@@ -16,8 +16,7 @@ export default defineConfig({
         rollupOptions: {
             plugins: [
                 visualizer({
-                    open: true,
-                    filename: 'stats.html'
+                    filename: '/sdcard/stats.html'
                 })
             ]
         }

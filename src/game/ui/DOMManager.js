@@ -1,4 +1,7 @@
 export const DOMManager = {
+    // Adicione esta variável para guardar os últimos valores
+    _cache: { xp: -1, level: -1, weight: -1, maxWeight: -1 },
+
     init(player) {
         this.xpBar = document.getElementById('xp-bar');
         this.levelText = document.getElementById('level-text');
@@ -26,30 +29,52 @@ export const DOMManager = {
      * Atualiza os elementos estáticos da HUD (XP, Nível, Peso).
      */
     updateHUD(player) {
-        // 1. Atualiza XP
-        const xpPercent = Math.min(100, (player.xp / player.xpNeeded) * 100);
-        this.xpBar.style.width = `${xpPercent}%`;
-        this.levelText.innerText = `Nível ${player.level}`;
+        // 1. Atualiza XP (só se mudou)
+        if (this._cache.xp !== player.xp) {
+            const xpPercent = (player.xp / player.xpNeeded) * 100;
+            this.xpBar.style.width = `${xpPercent}%`;
+            this._cache.xp = player.xp;
+        }
 
-        // 🔴 2. NOVA LÓGICA DA BARRA DE PESO VERTICAL
-        if (this.weightContainer) {
-            const capacity = player.inventory.capacity;
-            const used = player.inventory.currentWeight;
+        // 2. Atualiza Nível (só se mudou)
+        if (this._cache.level !== player.level) {
+            this.levelText.innerText = `Nível ${player.level}`;
+            this._cache.level = player.level;
+        }
+
+        // 3. Barra de Peso (só re-renderiza se algo mudou)
+        if (this._cache.weight !== player.inventory.currentWeight || 
+            this._cache.maxWeight !== player.inventory.capacity) {
             
-            this.weightContainer.innerHTML = ''; // Limpa os blocos
+            this.renderizarBarraDePeso(player.inventory); // Extraia a lógica do for-loop pra cá
             
-            // Cria um bloco para cada espaço de capacidade
-            for (let i = 0; i < capacity; i++) {
-                const segment = document.createElement('div');
-                segment.className = 'weight-segment';
-                
-                // Preenche de CIMA para BAIXO: os primeiros 'used' ficam cinzas.
-                if (i < used) {
-                    segment.classList.add('used'); 
-                }
-                
-                this.weightContainer.appendChild(segment);
+            this._cache.weight = player.inventory.currentWeight;
+            this._cache.maxWeight = player.inventory.capacity;
+        }
+    },
+
+    /**
+     * Renderiza a barra de peso vertical.
+     */
+    renderizarBarraDePeso(inventory) {
+        if (!this.weightContainer) return;
+        
+        const capacity = inventory.capacity;
+        const used = inventory.currentWeight;
+        
+        this.weightContainer.innerHTML = ''; // Limpa os blocos
+        
+        // Cria um bloco para cada espaço de capacidade
+        for (let i = 0; i < capacity; i++) {
+            const segment = document.createElement('div');
+            segment.className = 'weight-segment';
+            
+            // Preenche de CIMA para BAIXO: os primeiros 'used' ficam cinzas.
+            if (i < used) {
+                segment.classList.add('used'); 
             }
+            
+            this.weightContainer.appendChild(segment);
         }
     },
 
@@ -112,6 +137,4 @@ export const DOMManager = {
 };
 
 // Disponibiliza globalmente para facilitar a comunicação com o player.js e progress.js
-window.DOMManager = DOMManager;
-
-
+window.DOMManager = DOMManager;s

@@ -6,6 +6,13 @@ import { gameData } from "../config/configManager.js";
 
 const verificarColisao = (o1, o2) => {
     const rSum = (o1.radius || 10) + (o2.radius || 10);
+    
+    // 🔴 FAST-FAIL (AABB): Checa um "quadrado" rápido antes da matemática pesada
+    if (Math.abs(o1.x - o2.x) > rSum || Math.abs(o1.y - o2.y) > rSum) {
+        return false;
+    }
+    
+    // Teste circular preciso (Só roda se passarem no teste do quadrado)
     return MathUtils.distSq(o1.x, o1.y, o2.x, o2.y) < (rSum * rSum);
 };
 const aplicarEfeitoDeStatus = (entidade, tipo, duracao = 2.0) => {

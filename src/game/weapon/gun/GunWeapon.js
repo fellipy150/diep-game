@@ -3,6 +3,7 @@ import { LobbedProjectile } from "../../projectiles/index.js";
 import { WeaponBase } from "../base/WeaponBase.js";
 import { gameData } from "../../../config/configManager.js";
 import { SynergyRegistry } from "../../synergies/SynergyRegistry.js";
+import { BulletEffects } from './BulletEffects.js';
 
 /**
  * GunWeapon: Classe base para armas que disparam projéteis baseados em carregador (munição).
@@ -96,6 +97,12 @@ export class GunWeapon extends WeaponBase {
                 pierceCount: 0,
                 bounces: 0
             };
+
+            // 🔫 CORREÇÃO: Aplicar os efeitos do projétil AQUI, após ele ter sido criado e antes da sinergia
+            if (bulletConfig.effects && bulletConfig.effects.length > 0) {
+                // Aplica efeitos como ricochete, perfuração, etc.
+                BulletEffects.apply(bulletConfig);
+            }
 
             // 3. Aplicação de Sinergias (Apenas para o Player)
             if (isPlayer && p.activeSynergies) {

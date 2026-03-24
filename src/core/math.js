@@ -32,7 +32,7 @@ const toDir = (dx, dy, tx, ty) => {
     };
 };
 
-export function predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed) {
+function predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed) {
     const rx = targetPos.x - shooterPos.x;
     const ry = targetPos.y - shooterPos.y;
     // Resolução da Equação Quadrática para intersecção de movimento
@@ -55,13 +55,13 @@ export function predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed) 
     return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty);
 }
 
-export function predictLobbed(shooterPos, targetPos, targetVel, flightTime) {
+function predictLobbed(shooterPos, targetPos, targetVel, flightTime) {
     const tx = targetPos.x + (targetVel.x * flightTime);
     const ty = targetPos.y + (targetVel.y * flightTime);
     return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty);
 }
 
-export function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
+function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
     const dx = targetPos.x - shooterPos.x;
     const dy = targetPos.y - shooterPos.y;
     const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 2 * inaccuracy;
@@ -73,7 +73,7 @@ export function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
     };
 }
 
-export function predictEdge(shooterPos, targetPos, targetVel, bulletSpeed, _targetRadius) {
+function predictEdge(shooterPos, targetPos, targetVel, bulletSpeed, _targetRadius) {
     const intercept = predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed);
     const tx = intercept.targetX;
     const ty = intercept.targetY;
