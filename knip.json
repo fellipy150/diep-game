@@ -2,8 +2,11 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": [
     "index.html",
-    "src/main.js"
+    "src/main.js",
+    "src/game/enemy/types/**/*.js",
+    "src/game/upgrades/types/**/*.js"
   ],
+
   "project": [
     "src/**/*.js"
   ],
