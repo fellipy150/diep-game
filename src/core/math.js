@@ -1,15 +1,9 @@
-// ==========================================
-// MATEMÁTICA BÁSICA E OTIMIZADA
-// ==========================================
 export const MathUtils = {
-  // Distância ao quadrado (Super rápido, sem raiz quadrada)
   distSq: (x1, y1, x2, y2) => {
     const dx = x2 - x1
     const dy = y2 - y1
     return dx * dx + dy * dy
   },
-
-  // Pega a direção normalizada (Vetor unitário)
   getDir: (x1, y1, x2, y2) => {
     const dx = x2 - x1
     const dy = y2 - y1
@@ -17,11 +11,6 @@ export const MathUtils = {
     return { x: dx / dist, y: dy / dist }
   },
 }
-
-// ==========================================
-// CINEMÁTICA E PREVISÃO DE TIROS (SMART AIM)
-// ==========================================
-
 const toDir = (dx, dy, tx, ty) => {
   const len = Math.hypot(dx, dy)
   return {
@@ -31,36 +20,28 @@ const toDir = (dx, dy, tx, ty) => {
     targetY: ty,
   }
 }
-
 function predictIntercept(shooterPos, targetPos, targetVel, bulletSpeed) {
   const rx = targetPos.x - shooterPos.x
   const ry = targetPos.y - shooterPos.y
-  // Resolução da Equação Quadrática para intersecção de movimento
   const a = targetVel.x ** 2 + targetVel.y ** 2 - bulletSpeed ** 2
   const b = 2 * (rx * targetVel.x + ry * targetVel.y)
   const c = rx ** 2 + ry ** 2
   const disc = b * b - 4 * a * c
-
   if (disc < 0) return toDir(rx, ry, targetPos.x, targetPos.y)
-
   const sqrtDisc = Math.sqrt(disc)
   const t1 = (-b - sqrtDisc) / (2 * a)
   const t2 = (-b + sqrtDisc) / (2 * a)
   const t = Math.min(t1 > 0 ? t1 : Infinity, t2 > 0 ? t2 : Infinity)
-
   if (t === Infinity) return toDir(rx, ry, targetPos.x, targetPos.y)
-
   const tx = targetPos.x + targetVel.x * t
   const ty = targetPos.y + targetVel.y * t
   return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty)
 }
-
 function predictLobbed(shooterPos, targetPos, targetVel, flightTime) {
   const tx = targetPos.x + targetVel.x * flightTime
   const ty = targetPos.y + targetVel.y * flightTime
   return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty)
 }
-
 function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
   const dx = targetPos.x - shooterPos.x
   const dy = targetPos.y - shooterPos.y
@@ -72,7 +53,6 @@ function predictInaccurate(shooterPos, targetPos, inaccuracy = 0.2) {
     targetY: targetPos.y,
   }
 }
-
 function predictEdge(
   shooterPos,
   targetPos,
@@ -95,7 +75,6 @@ function predictEdge(
   const edgeY = ty + (backY / dist) * _targetRadius
   return toDir(edgeX - shooterPos.x, edgeY - shooterPos.y, edgeX, edgeY)
 }
-
 export function getSmartAim(
   shooterPos,
   targetPos,
@@ -107,7 +86,6 @@ export function getSmartAim(
   const speedMods = { gigante: 0.3, balinhas: 1.2 }
   const lobbedTypes = ['bomba', 'acido', 'quicador', 'cola']
   const effectiveSpeed = baseSpeed * (speedMods[bulletType] || 1)
-
   if (bulletType === 'normal') {
     return predictInaccurate(shooterPos, targetPos, 0.15)
   }
@@ -123,7 +101,5 @@ export function getSmartAim(
     const ty = targetPos.y + targetVel.y * time
     return toDir(tx - shooterPos.x, ty - shooterPos.y, tx, ty)
   }
-
-  // Padrão: Interceptação precisa
   return predictIntercept(shooterPos, targetPos, targetVel, effectiveSpeed)
 }

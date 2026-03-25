@@ -5,7 +5,6 @@ export class Bullet {
   init(config) {
     this.x = config.x
     this.y = config.y
-    // 🔴 Se a GunWeapon mandar vx/vy (direção normalizada), multiplicamos pela velocidade aqui
     if (config.vx !== undefined && config.vy !== undefined) {
       this.vx = config.vx * config.speed
       this.vy = config.vy * config.speed
@@ -31,7 +30,6 @@ export class Bullet {
   }
   update(dt, context) {
     if (this.dead) return
-    // Movimento Linear (vx/vy já incluem a velocidade)
     this.x += this.vx * dt
     this.y += this.vy * dt
     this.life -= dt

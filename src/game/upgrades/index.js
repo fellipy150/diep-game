@@ -1,4 +1,3 @@
-// 1. Carregamento automático dos arquivos na pasta /types
 const modules = import.meta.glob('./types/*.js', { eager: true })
 const registry = []
 const RARITY_WEIGHTS = {

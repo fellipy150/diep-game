@@ -11,7 +11,6 @@ class InputManager {
     this.moveCtrl = new MoveController(baseMove, stickMove)
     this.aimCtrl = new AimController(baseAim, stickAim)
     this.swapCtrl = new SwapController()
-    // Prevenção global de scroll/zoom do navegador em dispositivos mobile
     this.setupGlobalPrevention()
   }
   get move() {
@@ -38,7 +37,6 @@ class InputManager {
   set fireReleased(val) {
     this.aimCtrl.fireReleased = val
   }
-  // 🔴 TROCA DE ARMA: Exposto para o Player/WeaponSystem consumir
   get fireSwap() {
     return this.swapCtrl.value
   }

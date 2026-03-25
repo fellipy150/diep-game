@@ -24,7 +24,6 @@ export class Enemy {
       console.error('Erro no constructor da classe Enemy:', error)
     }
   }
-  
   init(config) {
     try {
       this.type =
@@ -73,7 +72,6 @@ export class Enemy {
       console.error('Erro no método init da classe Enemy:', error)
     }
   }
-  
   update(dt, player, allEnemies, hazards) {
     try {
       if (this.dead) return
@@ -81,10 +79,8 @@ export class Enemy {
       this._cachedContext.enemies = allEnemies
       this._cachedContext.player = player
       this._cachedContext.hazards = hazards
-      
       const distSq = MathUtils.distSq(this.x, this.y, player.x, player.y)
       const OFFSCREEN_RADIUS_SQ = 1200 * 1200
-      
       if (distSq > OFFSCREEN_RADIUS_SQ) {
         const dir = MathUtils.getDir(this.x, this.y, player.x, player.y)
         this.x += dir.x * this.speed * dt
@@ -92,14 +88,10 @@ export class Enemy {
         this.currentMeleeDamage = this.baseMeleeDamage + this.rangedDamage
         return
       }
-      
       this.currentMeleeDamage = this.baseMeleeDamage
-      
-      // 🟢 ATUALIZAÇÃO DOS RELÓGIOS DO INIMIGO
       if (this.attackCooldown > 0) this.attackCooldown -= dt
       if (this.dodgeCheckTimer > 0) this.dodgeCheckTimer -= dt
       if (this.meleeCooldown > 0) this.meleeCooldown -= dt // 🔴 A LINHA QUE FALTAVA!
-      
       this.thinkTimer -= dt
       if (this.thinkTimer <= 0) {
         const moveIntent = this.type.think(
@@ -115,23 +107,17 @@ export class Enemy {
         }
         this.thinkTimer = 0.5
       }
-      
       this.velX += this.lastMoveIntent.x * this.acceleration * dt
       this.velY += this.lastMoveIntent.y * this.acceleration * dt
       this.velX *= this.friction
       this.velY *= this.friction
       this.x += this.velX * dt
       this.y += this.velY * dt
-      
-      // Sistema de Instinto (Cura)
       this.outOfCombatTimer += dt
-      // Se ficar 5 segundos sem agir/sofrer dano e não estiver atirando.
       if (this.outOfCombatTimer > 5.0) {
-        // Usando this.maxHp direto para ser mais limpo e rápido
         const regen = this.maxHp * 0.02 * dt
         this.hp = Math.min(this.maxHp, this.hp + regen)
       }
-      
       if (this.weapon) {
         this.weapon.update(dt, this._cachedContext)
       }
@@ -140,7 +126,6 @@ export class Enemy {
       console.error('Erro no método update da classe Enemy:', error)
     }
   }
-  
   updateBullets(dt) {
     try {
       for (let i = this.bullets.length - 1; i >= 0; i--) {
@@ -161,7 +146,6 @@ export class Enemy {
       console.error('Erro no updateBullets:', error)
     }
   }
-  
   takeDamage(amount, source = 'other') {
     try {
       this.hp -= amount
@@ -177,7 +161,6 @@ export class Enemy {
       console.error('Erro no método takeDamage da classe Enemy:', error)
     }
   }
-  
   draw(ctx, camera) {
     try {
       RenderEnemy(ctx, camera, this)
@@ -185,7 +168,6 @@ export class Enemy {
       console.error('Erro no método draw da classe Enemy:', error)
     }
   }
-  
   getDistSq(target) {
     try {
       return MathUtils.distSq(this.x, this.y, target.x, target.y)

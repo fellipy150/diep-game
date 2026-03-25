@@ -6,7 +6,7 @@ import { Player, handleProgress } from './player/index.js'
 import { resetCamera, updateCamera, renderGame } from './renderer.js'
 import PerfMonitor from '../core/PerfMonitor.js'
 import { DOMManager } from './ui/DOMManager.js'
-// 🔴 Gerenciador HTML/CSS
+
 let lastTime = 0
 export function startGameLoop() {
   gameState.player = new Player(1000, 1000)
@@ -34,7 +34,6 @@ function loop(time) {
     PerfMonitor.markEnd('update:total')
   }
   if (player && ctx && canvas) {
-    // 🔴 AJUSTE: Removemos width/height da assinatura
     updateCamera(player)
     PerfMonitor.markStart('render:total')
     renderGame(ctx, canvas, gameState)

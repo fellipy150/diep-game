@@ -1,4 +1,3 @@
-// src/core/PerfMonitor.js
 const PerfMonitor = (() => {
   const FRAME_BUDGET_MS = 16.6
   const WARN_THRESHOLD_MS = 15.0

@@ -3,7 +3,7 @@ import { assets } from './core/AssetLoader.js'
 import { initEnemyTypes } from './game/enemy/types/typeLoader.js'
 import { UpgradeSystem } from './game/upgrades/index.js'
 import { startGameLoop } from './game/gameLoop.js'
-// true = Alta Resolução (HD/Retina) -> Mais bonito, exige mais do celular
+
 export const ENABLE_HD_GRAPHICS = false
 async function bootstrap() {
   try {

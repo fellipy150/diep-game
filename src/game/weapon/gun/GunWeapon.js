@@ -50,7 +50,6 @@ export class GunWeapon extends WeaponBase {
       multishotScale: 1,
       type: 'normal',
     }
-    // 2. LÓGICA DE MULTISHOT / SPREAD
     const baseAngle = Math.atan2(aimDir.y, aimDir.x)
     const shotCount =
       config.multishotScale === 0

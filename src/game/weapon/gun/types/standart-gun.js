@@ -9,7 +9,7 @@ const StandardGunConfig = {
   burstDelay: 0.1,
   bulletColor: '#00ffff',
   bulletType: 'normal',
-  baseDamage: 15,
+  baseDamage: 40,
   baseBulletSpeed: 400,
 }
 export function createStandardGun(overrides = {}) {

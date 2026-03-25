@@ -39,7 +39,6 @@ export function processarColisoes() {
         e1.y -= dir.y * overlap
       }
       MeleeAction.execute(e1, player, criarNumeroDano)
-      // 🟢 Ataque de Contato do Player no Inimigo (Espinhos Corpo a Corpo)
       const tempoAtual = performance.now()
       const cooldownDano = 500
       if (
@@ -61,7 +60,6 @@ export function processarColisoes() {
         player.velY = (player.velY || 0) + dir.y * forcaRecuo
       }
     }
-    // --- 2. COLISÃO: INIMIGO VS INIMIGO (Infight Separação) ---
     for (let j = i + 1; j < enemies.length; j++) {
       const e2 = enemies[j]
       if (e2.dead) continue
