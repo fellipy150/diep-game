@@ -3,12 +3,8 @@ import globals from "globals"
 import importPlugin from "eslint-plugin-import"
 
 export default [
-
   {
-    ignores: [
-      "dist/**",
-      "node_modules/**"
-    ]
+    ignores: ["dist/**", "node_modules/**"]
   },
 
   {
@@ -17,7 +13,6 @@ export default [
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
-
       globals: {
         ...globals.browser,
         ...globals.node
@@ -37,13 +32,11 @@ export default [
     },
 
     rules: {
-
       /*
       =====================
       ERROS REAIS
       =====================
       */
-
       "no-undef": "error",
       "no-unreachable": "error",
       "no-constant-condition": "warn",
@@ -60,19 +53,12 @@ export default [
       IMPORT / EXPORT
       =====================
       */
-
       "import/no-unresolved": "error",
-
       "import/named": "error",
-
       "import/default": "error",
-
       "import/namespace": "error",
-
       "import/no-duplicates": "error",
-
       "import/no-cycle": "warn",
-
       "import/newline-after-import": "warn",
 
       /*
@@ -80,14 +66,23 @@ export default [
       QUALIDADE
       =====================
       */
-
       "no-var": "error",
-
       "prefer-const": "warn",
-
       "no-debugger": "warn",
+      "no-console": "off",
 
-      "no-console": "off"
+      /*
+      =====================
+      ESTILO COMPACTO
+      =====================
+      */
+      "brace-style": ["error", "1tbs", { allowSingleLine: true }],
+      "curly": "off",
+      "max-statements-per-line": ["error", { max: 3 }],
+      "arrow-body-style": ["error", "as-needed"],
+      "no-confusing-arrow": "off",
+      "implicit-arrow-linebreak": "off",
+      "function-paren-newline": ["error", "consistent"]
     }
   },
 

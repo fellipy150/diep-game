@@ -150,8 +150,6 @@ canvas#game {
     background: transparent;
 }
 
-
-
 .weight-segment {
     flex: 1; 
     background-color: #333; /* 🟢 Cinza Escuro (Espaço Vazio / Livre) */
@@ -166,12 +164,17 @@ canvas#game {
     box-shadow: 0 0 5px rgba(255, 140, 0, 0.6); /* Brilhozinho pra destacar */
 }
 
-
-
-
 /* ==========================================
-   LEVEL UP MODAL (GLASSMORPHISM)
+   LEVEL UP MODAL (GLASSMORPHISM & CARTAS)
    ========================================== */
+:root {
+    --rarity-common: #95a5a6;
+    --rarity-uncommon: #2ecc71;
+    --rarity-rare: #3498db;
+    --rarity-epic: #9b59b6;
+    --rarity-legendary: #f1c40f;
+}
+
 #level-up-modal {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -182,7 +185,7 @@ canvas#game {
     background: rgba(10, 10, 25, 0.85);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    z-index: 150; /* Fica acima de TUDO, inclusive joysticks, para pausar o jogo */
+    z-index: 150;
     pointer-events: auto;
 }
 
@@ -193,47 +196,87 @@ canvas#game {
 #level-up-modal h2 {
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 4px;
-    color: #0ff;
-    text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
-    margin-bottom: 20px;
+    letter-spacing: 2px;
+    color: #fff;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    margin-bottom: 30px;
+    text-align: center;
 }
 
 #upgrade-choices {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 90%;
-    max-width: 400px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    width: 100%;
+    max-width: 1000px;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    max-height: 80vh;
 }
 
-#upgrade-choices button {
-    background: rgba(0, 255, 255, 0.05);
-    border: 1px solid #0ff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
-    color: #0ff;
+/* O Design da Carta Antiga */
+.upgrade-card {
+    width: 220px;
+    min-height: 280px;
+    background-color: #2d3436;
+    border-radius: 12px;
     padding: 15px;
-    border-radius: 6px;
-    text-align: left;
     cursor: pointer;
-    transition: all 0.2s ease;
+    box-sizing: border-box;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid transparent;
 }
 
-#upgrade-choices button:active {
-    background: rgba(0, 255, 255, 0.3);
-    transform: scale(0.95);
+/* Responsividade Mobile */
+@media (max-width: 600px) {
+    #upgrade-choices {
+        flex-direction: column;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+    .upgrade-card {
+        width: 90%;
+        max-width: 350px;
+        min-height: auto;
+    }
 }
 
-#upgrade-choices button strong {
-    font-size: 16px;
-    display: block;
-    margin-bottom: 4px;
+/* Bordas de Raridade */
+.upgrade-card.common { border-color: var(--rarity-common); }
+.upgrade-card.uncommon { border-color: var(--rarity-uncommon); }
+.upgrade-card.rare { border-color: var(--rarity-rare); }
+.upgrade-card.epic { border-color: var(--rarity-epic); }
+.upgrade-card.legendary { border-color: var(--rarity-legendary); }
+
+/* Interação (Toque/Clique) */
+.upgrade-card:active {
+    transform: scale(0.95) !important;
 }
 
-#upgrade-choices button small {
-    color: #aaa;
-    font-size: 12px;
+/* Efeito Hover apenas para Desktop */
+@media (hover: hover) {
+    .upgrade-card.common:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 10px 20px rgba(149, 165, 166, 0.3); }
+    .upgrade-card.uncommon:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3); }
+    .upgrade-card.rare:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3); }
+    .upgrade-card.epic:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 10px 20px rgba(155, 89, 182, 0.3); }
+    .upgrade-card.legendary:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 10px 20px rgba(241, 196, 15, 0.3); }
 }
+
+/* Elementos Internos da Carta */
+.rarity-tag {
+    font-size: 10px; font-weight: bold; padding: 2px 8px; 
+    border-radius: 10px; display: inline-block; align-self: flex-start;
+    color: #000;
+}
+.upgrade-card h3 { margin: 10px 0; color: #fff; font-size: 18px; }
+.upgrade-card p { font-size: 13px; color: #ecf0f1; line-height: 1.4; flex-grow: 1; margin: 0 0 10px 0;}
+.stat-preview { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin: 10px 0; }
+.synergy-hint { color: #fdcb6e; font-size: 11px; margin-top: 5px; font-weight: bold; }
 
 /* ==========================================
    JOYSTICKS (CONTROLES TOUCH)
@@ -275,4 +318,89 @@ canvas#game {
     background: rgba(255, 50, 50, 0.7);
 }
 
+/* ==========================================
+   SYNERGY TOAST (Notificação Flutuante)
+   ========================================== */
+#synergy-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 20, 20, 0.9);
+    border: 2px solid #f1c40f;
+    box-shadow: 0 4px 15px rgba(241, 196, 15, 0.4);
+    border-radius: 8px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 200;
+    backdrop-filter: blur(5px);
+    transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+}
 
+#synergy-toast.hidden-toast {
+    top: -100px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#synergy-toast .toast-icon { font-size: 24px; }
+#synergy-toast h4 { margin: 0 0 5px 0; color: #f1c40f; font-family: 'Orbitron', sans-serif; font-size: 14px; letter-spacing: 1px;}
+#synergy-toast p { margin: 0; color: #ecf0f1; font-size: 12px; }
+
+/* ==========================================
+   GAME OVER MODAL
+   ========================================== */
+#game-over-modal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 0, 0, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 300; /* Mais alto que tudo para travar o jogo de vez */
+    pointer-events: auto;
+}
+
+#game-over-modal.hidden {
+    display: none !important;
+}
+
+.death-title {
+    font-family: 'Orbitron', sans-serif;
+    color: #ff4444;
+    font-size: 48px;
+    text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+    margin-bottom: 10px;
+    letter-spacing: 5px;
+}
+
+#game-over-stats {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 40px;
+}
+
+#restart-button {
+    background: transparent;
+    border: 2px solid #ff4444;
+    color: #ff4444;
+    padding: 15px 40px;
+    font-size: 18px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    box-shadow: inset 0 0 10px rgba(255, 68, 68, 0.2);
+}
+
+#restart-button:active {
+    background: #ff4444;
+    color: #fff;
+    transform: scale(0.95);
+}

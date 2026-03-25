@@ -11,6 +11,7 @@
     "lint:fix": "eslint src --fix",
     "lint:strict": "eslint src --max-warnings 0",
     "lint:file": "eslint",
+    "format": "prettier --write src",
     "build:debug": "vite build --debug"
   },
   "devDependencies": {
